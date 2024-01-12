@@ -35,7 +35,7 @@ FONT = 'Arial'
 
 #Lista de interracciones para cada npc
 INTEREACTUAR_CONSTRUCTOR = ["Hablar", "Construir", "Regalo"]
-INTERACTUAR_BIOLOGO = ["Hablar", "Seguir", "Regalo"]
+INTERACTUAR_BIOLOGO = ["Hablar", "Seguir", "Tienda", "Regalo"]
 INTERACTUAR_NPC = ["Hablar", "Regalo"]
 
 #Descripcion de los materiales y las herramientas
@@ -60,3 +60,11 @@ ESTRUCTURAS = ["Silo", "Corral"]
 MATERIALES_ESTRUCTURAS = ["Madera", "Madera"]
 CANTIDAD_MATERIALES = [5, 10]
 UTILIDAD = ["Almacena alimento", "Lugar donde podras guardar a tus animales"]
+
+#Imagenes de estructuras
+silo_vacio = 'Images/estructuras/Silo vacio.png'
+silo_lleno = 'Images/estructuras/Silolleno.png'
+silo_con_espacio = 'Images/estructuras/Silo con espacio.png'
+
+#Mapas
+HOME = 'C:/Users/Familia Perez/Desktop/Angel/Tiled-Mapas/Home.tmx'

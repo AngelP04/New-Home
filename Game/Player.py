@@ -13,8 +13,9 @@ class Player(pygame.sprite.Sprite):
         self.rect.bottom = bottom
         self.pos_x = self.rect.left
         self.pos_y = self.rect.bottom
-        self.raycast = Raycast(self)
+        self.biologo = False
         self.coll = ""
+        self.animals_knows = []
         self.speed_x = SPEED
         self.speed_y = SPEED
         self.vel_x = 0
@@ -30,6 +31,7 @@ class Player(pygame.sprite.Sprite):
         self.toolbar = Toolbar(self, 5, 5, 1)
         self.inventario.addItemInv(Tool("hacha", 5, 1))
         self.inventario.addItemInv(Regadera(5))
+        self.inventario.addItemInv(Tool("azada", 8, 1))
 
         self.playing = True
         self.can_move = True
@@ -38,8 +40,7 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, value):
         if value == 1:
-            if not self.front:
-                self.vel_x += self.speed_x
+            self.vel_x += self.speed_x
         elif value == -1:
             self.vel_x -= self.speed_x
         elif value == 2:
@@ -174,6 +175,14 @@ class Player(pygame.sprite.Sprite):
                     tile_collide = tile
                     return tile_collide
 
+    def azar(self, tiles):
+        for tile in tiles:
+            if self.verify_select_slot().item.nombre == "azada":
+                if tile.selected:
+                    if tile.cultivable:
+                        tile.state = "arado"
+
+
     def drop(self, item, grupo, cant):
         if item.type == "tool":
             pos = random.randrange(-20, 20)
@@ -207,6 +216,16 @@ class Player(pygame.sprite.Sprite):
                     if slot.cant == 0:
                         slot.item = None
 
+    def check_animals(self, animal): #Funcion del jugaodr
+        dx = abs(self.rect.left - animal.rect.left)
+        dy = abs(self.rect.top - animal.rect.top)
+
+        if animal.nombre in self.animals_knows:
+            return
+
+        if dx < 100 and dy < 100:
+            return True
+
     def stop_move(self):
         if self.vel_x > 0:
             return True
@@ -215,7 +234,6 @@ class Player(pygame.sprite.Sprite):
         if self.playing:
             self.colliding = False
             self.update_pos()
-            self.raycast.update()
             self.rect.left = self.pos_x
             self.rect.bottom = self.pos_y
             self.update_toolbar()
@@ -267,12 +285,14 @@ class Player(pygame.sprite.Sprite):
                             material.mined()
                             break
 
-    def use_tool(self, semillas, materiales, grupo=None):
+    def use_tool(self, semillas, materiales, tiles, grupo=None):
         if self.verify_select_slot().item != None:
             if self.verify_select_slot().item.nombre == "regadera":
                 self.regar(semillas)
             elif self.verify_select_slot().item.nombre == "hacha":
                 self.mine(materiales, grupo)
+            elif self.verify_select_slot().item.nombre == "azada":
+                self.azar(tiles)
 
     def update_pos(self):
         if self.can_move:

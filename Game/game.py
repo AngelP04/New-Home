@@ -3,17 +3,21 @@ import sys
 import datetime
 from .Player import Player
 from .Recursos import *
-from .npc import NPC
-from .Constructor import Construtor, Biologo
+from .npc import NPC, Construtor, Biologo
 from .Menu_Constructor import menu
 from .Event import *
 from .Cuadro_Texto import Text_Rect
-from .Estructuras import Estructura
 from .camaraY import Ycamara
 from .menu_estructuras import menu_estructuras
 from .Boton_independiente import Button_parent
 from .Inventario import *
-from .Tiles import Map
+from .map import Map
+from .Cinematics import Cinematic
+from .Animales import Animal
+
+npc_basico = {"left": 200, "bottom": 300, "nombre": "Fernan", "guion": DIALOGOS_NPC, "interactuar": INTERACTUAR_NPC, "dialogos_cinematicas": DIALOGOS_BIOLOGO_CINEMATICA}
+npc_constructor = {"left": 750, "bottom": 100, "nombre":"Roberto", "guion": DIALOGOS_ROBERTO, "interactuar": INTEREACTUAR_CONSTRUCTOR, "dialogos_cinematicas": DIALOGOS_BIOLOGO_CINEMATICA}
+lista_npcs = [NPC(**npc_basico), NPC(**npc_constructor)]
 
 class game:
     def __init__(self):
@@ -25,6 +29,8 @@ class game:
         self.running = True  # Permit saber si el program se esta cutaneous
 
         self.clock = pygame.time.Clock()
+
+        self.listas_cinematicas = []
 
         self.font = pygame.font.match_font(FONT)
 
@@ -56,11 +62,15 @@ class game:
 
         self.player = Player(100, 300)
 
-        self.npc = NPC(200, 300, interaccones=INTERACTUAR_NPC)
+        self.animal = Animal(-100, 100, "Señor de la montaña")
+
+        self.animals = pygame.sprite.Group()
+
+        self.animals.add(self.animal)
+
+        self.npcs = pygame.sprite.Group()
 
         self.fernan = Biologo(200, 50)
-
-        self.roberto = Construtor(750, 100)
 
         self.arbol = Recurso(200, 70, 5, "Arbol", item=Item_acum("madera", 1), item_second=Item_acum("semilla", 2))
 
@@ -74,8 +84,6 @@ class game:
 
         self.Cursor = pygame.sprite.Group()
 
-        self.npcs = pygame.sprite.Group()
-
         self.recursos = pygame.sprite.Group()
 
         self.estructuras = pygame.sprite.Group()
@@ -86,19 +94,25 @@ class game:
 
         self.doors = pygame.sprite.Group()
 
-        self.map = Map(self.player, Estructura, self.roberto)
+        self.create_cinematic()
+
+        self.map = Map(self.player, self.listas_cinematicas)
+
+        for estructura in self.map.estructuras:
+            self.estructuras.add(estructura)
+
+        for npc in lista_npcs:
+            self.npcs.add(npc)
+            self.map.add(npc)
 
         self.map.add(self.player)
         self.map.add(self.fernan)
+        self.map.add(self.animal)
         self.Jugador.add(self.player)
-        self.map.add(self.npc)
-        self.map.add(self.roberto)
         self.map.add(self.arbol)
         self.map.add(self.roca)
         self.recursos.add(self.arbol)
         self.recursos.add(self.roca)
-        self.npcs.add(self.npc)
-        self.npcs.add(self.roberto)
         self.npcs.add(self.fernan)
         self.cursor = self.map.mouse
 
@@ -128,11 +142,23 @@ class game:
 
         surface.blit(text, rect)
 
+    def filter_animals(self):
+        if isinstance(self.map.cinematica_now.target, Animal):
+            return True
+
     def update(self):
         if not self.playing:
             return
 
         self.update_day()
+
+        for animal in self.player.animals_knows:
+            if animal not in self.fernan.animals:
+                self.fernan.animals.append(animal)
+
+        for cinematica in self.map.cinematicas:
+            if cinematica.moved:
+                self.state = "Cinematic"
 
         self.map.update()
 
@@ -147,6 +173,8 @@ class game:
             for estructura in self.map.estructuras:
                 event = Collision_event(self.player, estructura)
                 estructura.collide_player(event)
+                if pygame.sprite.collide_mask(self.player, estructura.door):
+                    estructura.enter = True
                 if estructura.collide_player(event):
                     self.player.validate_colision_estructura(estructura)
 
@@ -174,7 +202,6 @@ class game:
 
         for recurso in self.recursos:
             self.player.validate_colision(recurso)
-            self.npc.validate_colision(recurso)
 
         for npc in self.npcs:
             for estructura in self.estructuras:
@@ -182,31 +209,29 @@ class game:
             for recurso in self.recursos:
                 npc.validate_colision(recurso)
 
-        if self.map.cinematic != None:
-            if self.map.cinematic.moved:
-                self.state = "Talking"
-
         if self.state == "Talking":
             self.text_rect()
         elif self.state == "Playing":
             self.player.playing = True
-            self.npc.playing = True
-            self.roberto.playing = True
             self.fernan.playing = True
             self.map.update()
         elif self.state == "menu_npc":
-            self.crear_menu_npc()
+            self.create_menu_npc()
+        elif self.state == "Cinematic":
+            self.text_rect_cinematic()
         elif self.state == "Building":
-            self.menu_construccion()
+            self.menu_build()
         elif self.state == "Inventario":
-            self.crear_inventario()
+            self.create_inventario()
         elif self.state == "inside-build":
             self.player.playing = True
             self.inside_build()
         elif self.state == "menu_fernan":
-            self.crear_menuBiologo()
+            self.create_menuBiologist()
         elif self.state == "ajusting":
             self.map.cinematic.ajust_camera()
+        elif self.state == "Tienda":
+            self.create_menu_tienda()
 
     def draw(self):
         if self.drawing:
@@ -278,7 +303,7 @@ class game:
                     self.sprites_inside_tall.remove(self.cursor)
                 self.cursor.can_move = True
                 self.player.pos_x = self.build_enter.pos_x + 60
-                self.player.pos_y = self.build_enter.pos_y + 30
+                self.player.pos_y = self.build_enter.pos_y + 60
                 self.cursor.pos_x = self.player.pos_x
                 self.cursor.pos_y = self.player.pos_y
                 self.build_enter = None
@@ -288,7 +313,64 @@ class game:
 
             pygame.display.flip()
 
-    def crear_menu_npc(self):
+    def create_menu_tienda(self):
+        self.cuadro_animales = Text_Rect(width=300, height=200, left=400, bottom=20)
+        self.menu_animals = menu(left=100, bottom=20, width=205, height=200, interaccion=self.fernan.animals, buttom_left=43, buttom_width=35, buttom_height=35, config="horizontal")
+        self.buttom_salir = Button_parent(rect=pygame.rect.Rect(110, 200, 70, 40), color=PINK, element="Salir")
+        self.buttom_buy = Button_parent(rect=pygame.rect.Rect(225, 200, 70, 40), color=BLUE_Light, element="Comprar")
+        self.buttom_salir.repaint()
+        self.buttom_buy.repaint()
+
+        self.stop_characters()
+
+        distancia_letras = 60
+        temp = None
+        found = False
+        tiempo_letras = datetime.timedelta(seconds=Tiempo_dialogos)
+        cont_letras = tiempo_letras
+        cont = 0
+        texto = ""
+
+        Distancia = 10
+
+        self.surface.blit(self.menu_animals.image, self.menu_animals.rect)
+        self.surface.blit(self.cuadro_animales.image, self.cuadro_animales.rect)
+        self.surface.blit(self.buttom_salir.image, self.buttom_salir.rect)
+        self.surface.blit(self.buttom_buy.image, self.buttom_buy.rect)
+
+        buiying = True
+
+        while buiying:
+            self.clock.tick(FPS)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    buiying = False
+                    self.running = False
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.menu_animals._on_click(Event(event))
+                    if self.menu_animals.element != None and self.menu_animals.element != temp:
+                        print(self.menu_animals.element)
+                        distancia_letras = 60
+                        cont = 0
+
+                    if self.buttom_salir.rect.collidepoint(pygame.mouse.get_pos()):
+                        self.player.vel_x = 0
+                        self.player.vel_y = 0
+                        self.back_game()
+                        self.stop_characters()
+                        self.state = "Playing"
+                        buiying = False
+
+                    elif self.buttom_buy.rect.collidepoint(pygame.mouse.get_pos()):
+                        pass
+
+            pygame.display.flip()
+
+    def create_menu_npc(self):
         alto = 30
         for npc in self.npcs:
             if npc.talking:
@@ -340,6 +422,11 @@ class game:
                         self.stop_characters()
                         self.fernan.swap_follow()
                         self.state = "Playing"
+                    elif self.menu_npc.element == "Tienda":
+                        pause = False
+                        self.back_game()
+                        self.stop_characters()
+                        self.state = "Tienda"
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
@@ -352,17 +439,17 @@ class game:
 
             pygame.display.flip()
 
-    def crear_menuBiologo(self):
+    def create_menuBiologist(self):
         alto = 30
 
         if self.fernan.following:
             for interaccion in self.fernan.inter_follow:
                 alto += 22
-            self.menu_biologo = menu(self.fernan.rect.x + 10, self.fernan.rect.y - 60, self.fernan.inter_follow, height=alto)
+            self.menu_biologo = menu(self.fernan.pos_x + self.map.offset.x, self.fernan.pos_y + self.map.offset.y, self.fernan.inter_follow, height=alto)
         elif self.fernan.wait:
             for interaccion in self.fernan.inter_wait:
                 alto += 22
-            self.menu_biologo = menu(self.fernan.rect.x + 10, self.fernan.rect.y - 60, self.fernan.inter_wait, height=alto)
+            self.menu_biologo = menu(self.fernan.pos_x + self.map.offset.x, self.fernan.pos_y + self.map.offset.y, self.fernan.inter_wait, height=alto)
 
         group = pygame.sprite.GroupSingle(self.menu_biologo)
 
@@ -408,9 +495,16 @@ class game:
                         self.fernan.free()
                         self.state = "Playing"
 
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        pause = False
+                        self.back_game()
+                        self.stop_characters()
+                        self.state = "Playing"
+
             pygame.display.flip()
 
-    def crear_inventario(self):  #Función para mostrar el inventario en el juego
+    def create_inventario(self):  #Función para mostrar el inventario en el juego
         self.stop_characters()
         self.player.inventario.display_inventory()
         inventary = True
@@ -501,7 +595,7 @@ class game:
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    self.player.use_tool(self.seeds, self.recursos, self.items)
+                    self.player.use_tool(self.seeds, self.recursos, self.map.lista, self.items)
                 if event.key == pygame.K_e:
                     self.map.update()
                     self.state = "Inventario"
@@ -528,10 +622,10 @@ class game:
                     self.slot_select -= 1
                     self.player.select_slot(self.slot_select)
 
-    def menu_construccion(self):
+    def menu_build(self):
         self.cuadro_estructuras = Text_Rect(width=300, height=200, left=400, bottom=20)
         self.cuadro_texto = Text_Rect()
-        self.menu_estructuras = menu_estructuras(left=100, bottom=20, height=200, interaccion=ESTRUCTURAS)
+        self.menu_estructuras = menu_estructuras(left=100, bottom=20, height=200, interaccion=self.map.estructuras_disp)
         self.buttom_salir = Button_parent(rect=pygame.rect.Rect(90, 200, 70, 40), color=PINK, element="Salir")
         self.buttom_build = Button_parent(rect=pygame.rect.Rect(250, 200, 70, 40), color=BLUE_Light, element="Build")
         self.buttom_salir.repaint()
@@ -541,6 +635,7 @@ class game:
 
         distancia_letras = 60
         temp = None
+        found = False
         tiempo_letras = datetime.timedelta(seconds=Tiempo_dialogos)
         cont_letras = tiempo_letras
         cont = 0
@@ -549,7 +644,7 @@ class game:
         Distancia = 10
 
         for button in self.menu_estructuras.lista:
-            self.display_text(self.menu_estructuras.image, button.element, 10, WHITE, 123, Distancia)
+            self.display_text(self.menu_estructuras.image, button.element.nombre, 10, WHITE, 123, Distancia)
             Distancia += 30
 
 
@@ -562,7 +657,6 @@ class game:
 
         building = True
 
-        '''
         while building:
             self.clock.tick(FPS)
 
@@ -580,15 +674,15 @@ class game:
                         self.cuadro_texto.image.fill(GREEN)
                         distancia_letras = 60
                         cont = 0
-                    for estructura in ESTRUCTURAS:
-                        if self.menu_estructuras.element == estructura:
-                            self.cuadro_estructuras.image.fill(GREEN)
-                            pos = ESTRUCTURAS.index(estructura)
-                            texto = UTILIDAD[pos]
-                            temp = self.menu_estructuras.element
-                            distancia_materiales = self.menu_estructuras.lista[pos].rect.top
-                            self.display_text(self.cuadro_estructuras.image, MATERIALES_ESTRUCTURAS[pos] + " x" + str(CANTIDAD_MATERIALES[pos]), 14, WHITE, 50, distancia_materiales)
-                            self.surface.blit(self.cuadro_estructuras.image, self.cuadro_estructuras.rect)
+                    for estructura in self.map.estructuras_disp:
+                        if self.menu_estructuras.element != None:
+                            if self.menu_estructuras.element.nombre == estructura.nombre:
+                                self.cuadro_estructuras.image.fill(GREEN)
+                                texto = estructura.desc
+                                temp = self.menu_estructuras.element
+                                self.display_text(self.cuadro_estructuras.image, self.convert_dict(estructura.materials), 18, WHITE, 100, 10)
+                                self.surface.blit(self.cuadro_estructuras.image, self.cuadro_estructuras.rect)
+                                self.surface.blit(estructura.icon, (self.cuadro_estructuras.rect.x + 30, self.cuadro_estructuras.rect.y + 40))
 
                     if self.buttom_salir.rect.collidepoint(pygame.mouse.get_pos()):
                         self.player.vel_x = 0
@@ -600,22 +694,30 @@ class game:
 
                     elif self.buttom_build.rect.collidepoint(pygame.mouse.get_pos()):
                         if self.menu_estructuras.element != None:
-                            for est in lista:
-                                if self.menu_estructuras.element == est.nombre:
+                            for est in self.map.estructuras_disp:
+                                if self.menu_estructuras.element.nombre == est.nombre:
                                     for slot in self.player.inventario.inventory_slots:
                                         if slot.item != None:
                                             if slot.item.nombre == est.materials:
                                                 if slot.cant >= est.cantidadM:
-                                                    nueva_estructura = est
-                                                    self.sprites.add(nueva_estructura)
-                                                    self.estructuras.add(nueva_estructura)
-                                                    slot.cant -= est.cantidadM
+                                                    est.builded = True
+                                                    found = True
                                                     self.back_game()
                                                     self.stop_characters()
                                                     self.menu_estructuras.element = None
                                                     self.state = "Playing"
                                                     building = False
-
+                                                    break
+                                                else:
+                                                    self.cuadro_texto.image.fill(GREEN)
+                                                    cont = 0
+                                                    distancia_letras = 60
+                                                    texto = "No tienes suficientes materiales"
+                                    if not found:
+                                        self.cuadro_texto.image.fill(GREEN)
+                                        cont = 0
+                                        distancia_letras = 60
+                                        texto = "No tienes suficientes materiales"
 
             if self.menu_estructuras.element == temp:
                 if cont < len(texto):
@@ -636,7 +738,6 @@ class game:
 
 
             pygame.display.flip()
-        '''
 
     def stop_characters(self):
         for npc in self.npcs:
@@ -655,56 +756,7 @@ class game:
             texto += letra
         return texto
 
-    '''
     def text_rect_cinematic(self):
-        self.cuadro_texto = Text_Rect()
-        Distancia = 60
-        tiempo_letras = datetime.timedelta(seconds=Tiempo_dialogos)
-        cont_letras = tiempo_letras
-        texto = self.update_conversation(self.map.cinematic.text)
-        cont = 0
-        self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
-        talking = True
-        while talking:
-            self.clock.tick(FPS)
-            self.map.cinematic.update_conversation()
-            if cont < len(texto):
-                cont_letras -= datetime.timedelta(milliseconds=500)
-                if cont_letras <= datetime.timedelta(seconds=0):
-                    self.cuadro_texto.draw_text(texto[cont], Distancia)
-                    Distancia += 12
-                    self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
-                    pygame.display.flip()
-                    cont += 1
-                    cont_letras = tiempo_letras
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    talking = False
-                    self.running = False
-                    pygame.quit()
-                    sys.exit()
-
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if pygame.mouse.get_pressed()[0]:
-                        if cont >= len(texto):
-                            Distancia = 60
-                            self.cuadro_texto.image.fill(GREEN)
-                            texto = self.update_conversation(self.map.cinematic.text)
-                            self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
-
-                        self.playing = True
-                        self.state = "Playing"
-                        texto = ""
-                        cont = 0
-                        talking = False
-                        self.map.cinematic.finish = True
-
-            pygame.display.flip()
-            
-    '''
-
-    def text_rect(self):
         talking = False
         npc_talking = None
         self.cuadro_texto = Text_Rect()
@@ -712,15 +764,12 @@ class game:
         tiempo_letras = datetime.timedelta(seconds=Tiempo_dialogos)
         cont_letras = tiempo_letras
         for npc in self.npcs:
-            if npc.talking:
+            if npc.talking and npc.in_cinematic:
                 npc_talking = npc
                 npc_talking.update_conv()
 
         if npc_talking != None:
-            if npc_talking.in_cinematic:
-                texto = self.update_conversation(npc_talking.frase_cinematic)
-            else:
-                texto = self.update_conversation(npc_talking.frase)
+            texto = self.update_conversation(npc_talking.frase_cinematic)
             cont = 0
             self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
             talking = True
@@ -743,17 +792,15 @@ class game:
             else:
                 texto = ""
                 cont = 0
+                npc_talking.talking = False
+                npc_talking.in_cinematic = False
+                self.map.cinematica_now.end_dialogue = True
+                self.wait_cinematic()
+                if self.filter_animals():
+                    self.player.animals_knows.append(self.map.cinematica_now.target.nombre)
                 self.state = "Playing"
                 self.playing = True
                 talking = False
-                if not npc_talking.in_cinematic:
-                    npc_talking.cant_in -= 1
-                    npc_talking.talking = False
-                else:
-                    self.map.cinematic.end_dialogue = True
-                    self.wait_cinematic()
-                    npc_talking.talking = False
-                    npc_talking.in_cinematic = False
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -767,21 +814,76 @@ class game:
                         if cont >= len(texto):
                             Distancia = 60
                             self.cuadro_texto.image.fill(GREEN)
-                            if not npc_talking.in_cinematic:
-                                npc_talking.cant_in += 1
-                                npc_talking.update_conv()
-                                texto = self.update_conversation(npc_talking.frase)
-                            else:
-                                npc_talking.cant_in_cinematic += 1
-                                npc_talking.update_conv()
-                                texto = self.update_conversation(npc_talking.frase_cinematic)
+                            npc_talking.cant_in_cinematic += 1
+                            npc_talking.update_conv()
+                            texto = self.update_conversation(npc_talking.frase_cinematic)
                             self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
 
             pygame.display.flip()
 
-    def wait_cinematic(self):
+    def text_rect(self): #Funcion para crear un cuadro de texto cuando un npc esta hablando fuera de una cinematica
+        talking = False
+        npc_talking = None
+        self.cuadro_texto = Text_Rect()
+        Distancia = 60
+        tiempo_letras = datetime.timedelta(seconds=Tiempo_dialogos)
+        cont_letras = tiempo_letras#Es el tiempo en el que tardan las letras en aparecer
+        for npc in self.npcs:
+            if npc.talking:
+                npc_talking = npc
+                npc_talking.update_conv()
+
+        if npc_talking != None:
+            texto = self.update_conversation(npc_talking.frase)
+            cont = 0
+            self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
+            talking = True
+        while talking:
+            self.clock.tick(FPS)
+            npc_talking.update_conv()
+            if texto != "XN": #XN es solo un string que uso para indicar que el npc no va a hablar mas
+                if cont < len(texto):
+                    cont_letras -= datetime.timedelta(milliseconds=500)
+                    if cont_letras <= datetime.timedelta(seconds=0):
+                        self.cuadro_texto.draw_text(texto[cont], Distancia)
+                        Distancia += 12
+                        self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
+                        pygame.display.flip()
+                        cont += 1
+                        cont_letras = tiempo_letras
+                else:
+                    texto = ""
+                    cont = 0
+            else:
+                texto = ""
+                cont = 0
+                npc_talking.cant_in -= 1
+                npc_talking.talking = False
+                self.state = "Playing"
+                self.playing = True
+                talking = False
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    talking = False
+                    self.running = False
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if pygame.mouse.get_pressed()[0]:
+                        if cont >= len(texto):
+                            Distancia = 60
+                            self.cuadro_texto.image.fill(GREEN)
+                            npc_talking.cant_in += 1
+                            npc_talking.update_conv()
+                            texto = self.update_conversation(npc_talking.frase)
+                            self.surface.blit(self.cuadro_texto.image, self.cuadro_texto.rect)
+
+            pygame.display.flip()
+
+    def wait_cinematic(self): #Funcion para esperar a que termine una cinematica para que se vuelva al estado normal
         wait = True
-        cont = 0
 
         while wait:
             self.clock.tick(FPS)
@@ -793,7 +895,7 @@ class game:
                     self.running = False
                     pygame.quit()
                     sys.exit()
-            if self.map.cinematic.finish:
+            if self.map.cinematica_now.finish:
                 wait = False
             pygame.display.flip()
 
@@ -814,3 +916,35 @@ class game:
                 if event.type == pygame.KEYDOWN:
                     wait = False
 
+    def convert_dict(self, dic):
+        texto = ""
+        res = ', '.join(dic)
+        objects = tuple(res.split(', '))
+        cont = len(objects)
+        for obj in objects:
+            texto += obj + " " + str(dic.get(obj)) + "x"
+            if cont > 1:
+                texto += ", "
+            cont -= 1
+        return texto
+
+
+    def create_cinematic(self): #Funcion del clase juego para crear las cinematicas, aun en proceso
+        '''
+        for id, animal in enumerate(self.animals):
+            cinematica_biologo = {"player": self.player, "target": search_npc("Roberto"), "id": id,
+                                      "condition": str(("self.player.biologo and self.player.check_animals(?)", animal))}
+            new_cinematica_biologo = (Cinematic(**cinematica_biologo))
+            self.listas_cinematicas.append(new_cinematica_biologo)
+        '''
+
+        for id, animal in enumerate(self.animals):
+            cinematica_biologo = {"player": self.player, "target": animal, "id": id,
+                                  "condition": "self.player.check_animals(self.target) and self.player.biologo", "npc":search_npc("Fernan")}
+            new_cinematica_biologo = (Cinematic(**cinematica_biologo))
+            self.listas_cinematicas.append(new_cinematica_biologo)
+
+def search_npc(nombre):
+    for npc in lista_npcs:
+        if npc.nombre == nombre:
+            return npc
