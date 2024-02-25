@@ -176,7 +176,7 @@ class Map(pygame.sprite.Group): #Este mapa es una camara en la cual se dibujan t
         self.in_cinematic = False
 
 class Inside(Map):
-    def __init__(self, player, tmx='C:/Users/Familia Perez/Desktop/Angel/Tiled-Mapas/capsula_base.tmx'):
+    def __init__(self, player, tmx=INTERIOR):
         self.puerta_interior = []
         Map.__init__(self, player, tmx)
 

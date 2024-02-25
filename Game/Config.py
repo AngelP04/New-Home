@@ -73,3 +73,4 @@ JUGADOR_M = 'Images/Jugador/Jugador M Sprites.png'
 
 #Mapas
 HOME = 'Maps/Home.tmx'
+INTERIOR = 'Maps/capsula_base.tmx'
