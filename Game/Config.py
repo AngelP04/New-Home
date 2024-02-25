@@ -24,11 +24,12 @@ BLUE_Light = (20, 109, 198)
 YELLOW = (174, 198, 45)
 DARK_GREEN = (56, 102, 80)
 VINE = (173, 67, 80)
-TEST = (34, 127, 5)
+DARK_GREEN_TWO = (34, 127, 5)
+TEST = (200, 174, 4)
 
 #Velocidad del jugador
-SPEED = 2
-SPEED_RUNNING = 4
+SPEED = 4
+SPEED_RUNNING = 6
 
 #Fuente usada en el juego
 FONT = 'Arial'
@@ -52,7 +53,8 @@ DIALOGOS_NPC = ["Hola, como estás?", "Como?", "XN"]
 DIALOGOS_ROBERTO = ["Qué tal?", "Como?", "XN"]
 
 #Dialogos en cinematica
-DIALOGOS_BIOLOGO_CINEMATICA = ["Hay un animal cerca", "XN"]
+DIALOGOS_BIOLOGO_CINEMATICA = ["Hay un animal cerca", "XN", "Deberiamos capturarlo", "XN"]
+DIALOGO_ROBERTO_CINEMATIC = ["Es cierto", "XN"]
 
 
 #Datos sobre estructuras
@@ -66,5 +68,8 @@ silo_vacio = 'Images/estructuras/Silo vacio.png'
 silo_lleno = 'Images/estructuras/Silolleno.png'
 silo_con_espacio = 'Images/estructuras/Silo con espacio.png'
 
+#Imagenes del jugador
+JUGADOR_M = 'Images/Jugador/Jugador M Sprites.png'
+
 #Mapas
-HOME = 'C:/Users/Familia Perez/Desktop/Angel/Tiled-Mapas/Home.tmx'
+HOME = 'Maps/Home.tmx'

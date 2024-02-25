@@ -1,13 +1,15 @@
 import pygame
-from .Config import RED
+from .Config import BLUE, FONT
 
 class Widget(pygame.sprite.Sprite):
-    def __init__(self, parent=None, *, rect, color, element=None, lista=None):
+    def __init__(self, parent=None, *, rect, color, element=None, lista=None, select=None):
         pygame.sprite.Sprite.__init__(self)
 
         self.parent = parent
         self.element = element
         self.lista = lista
+        self.select = select
+        self.font = pygame.font.match_font(FONT)
 
         if (self.parent is not None):
             self.parent.children.add(self)
@@ -49,7 +51,14 @@ class Widget(pygame.sprite.Sprite):
         pass
 
     def repaint(self):
+
         self.image.fill(self.color)
+
+        if self.select:
+            self.image.fill(BLUE)
+        else:
+            self.image.fill(self.color)
+
         self.children.draw(self.image)
 
         if (self.parent is not None):
@@ -57,4 +66,14 @@ class Widget(pygame.sprite.Sprite):
 
     def update(self):
         self.children.update()
+        self.select = False
+
+    def display_text(self, surface, text, size, color, pos_x, pos_y):
+        font = pygame.font.Font(self.font, size)
+
+        text = font.render(text, True, color)
+        rect = text.get_rect()
+        rect.midtop = (pos_x, pos_y)
+
+        surface.blit(text, rect)
 

@@ -1,5 +1,5 @@
 import random
-from .Inventario import Item
+from .Items import Item_drop
 import pygame
 from .Config import *
 
@@ -47,25 +47,6 @@ class Recurso(pygame.sprite.Sprite):
         if self.playing:
             self.rect.centerx = self.pos_x
             self.rect.centery = self.pos_y
-
-class Item_drop(pygame.sprite.Sprite, Item):
-    def __init__(self, img, left, bottom, nombre, id, is_acum=True, tool=None, strenght=0, type=None):
-        pygame.sprite.Sprite.__init__(self)
-        Item.__init__(self, nombre, id, type)
-        self.image = img
-        self.rect = self.image.get_rect()
-        self.pos_x = left
-        self.pos_y = bottom
-        self.rect.left = self.pos_x
-        self.rect.bottom = self.pos_y
-        self.playing = True
-        self.is_acum = is_acum
-        self.tool = tool
-        self.streght = strenght
-
-    def update(self):
-        self.rect.left = self.pos_x
-        self.rect.bottom = self.pos_y
 
 class Seed(pygame.sprite.Sprite):
     def __init__(self, left, bottom, parent, planted):

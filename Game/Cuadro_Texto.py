@@ -22,8 +22,12 @@ class Text_Rect(pygame.sprite.Sprite):
 
         surface.blit(text, rect)
 
-    def draw_text(self, frase, pos_x, pos_y=20):
-        self.display_text(self.image, self.text_format(frase), 18, WHITE, pos_x, pos_y)
+    def draw_text(self, frase, pos_x, pos_y=50):
+        self.display_text(self.image, self.text_format(frase), 14, WHITE, pos_x, pos_y)
+
+    def check_distance(self, pos_x):
+        if self.rect.left - pos_x <= 100:
+            return True
 
     def text_format(self, letra):
         self.text = letra

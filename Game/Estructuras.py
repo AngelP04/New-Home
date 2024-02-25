@@ -1,7 +1,7 @@
 import pygame
-from .Tiles import Inside
 from .Config import *
-
+from .Items import Craft_Item
+from .Objetos import *
 
 class Builder(pygame.sprite.Sprite):
     def __init__(self, image, pos, parent=None):
@@ -48,13 +48,13 @@ class Builder(pygame.sprite.Sprite):
                 self.collide_player(event)
 
 class Estructura(Builder):
-    def __init__(self, surf, pos, id, nombre="Silo", materiales=None, size="small", max_offset_y=-95, min_offset_y=-172, desc="Refugio para los habitantes"):
+    def __init__(self, surf, pos, id, nombre="Silo", materiales=None, size="large", max_offset_y=-95, min_offset_y=-172, desc="Refugio para los habitantes"):
         Builder.__init__(self, surf, pos)
         self.id = id
         self.image = surf
         self.image_width = self.image.get_width()
         self.image_height = self.image.get_height()
-        self.icon = pygame.transform.scale(self.image, (120, 140))
+        self.icon = pygame.transform.scale(self.image, (80, 90))
         self.rect = self.image.get_rect(center=pos)
         self.mask = pygame.mask.from_surface(self.image)
         self.desc = desc
@@ -73,9 +73,9 @@ class Estructura(Builder):
         self.coll = False
         self.interior = None
 
-    def load_inside(self):
+    def load_inside(self, inside, player):
         if self.interior == None:
-            self.interior = Inside(self)
+            self.interior = inside(player)
 
     def collide_player(self, event):
         if not self.enter:
@@ -86,7 +86,6 @@ class Door(Builder):
     def __init__(self, pos, estructura):
         Builder.__init__(self, pygame.Surface((30, 60)), pos, estructura)
         self.image.fill((60, 100, 78))
-        self.image.set_colorkey((0, 0, 0))
 
     def collide_player(self, event):
         return True
@@ -94,7 +93,7 @@ class Door(Builder):
 
 class Silo(Estructura):
     def __init__(self, surf, pos, id):
-        Estructura.__init__(self, surf, pos, id, materiales={"Madera": 5}, desc="Almacena alimento")
+        Estructura.__init__(self, surf, pos, id, materiales=[Craft_Item(MADERA, 5), Craft_Item(PIEDRA, 5)], desc="Almacena alimento")
         self.state = "vacio"
 
     def update(self):

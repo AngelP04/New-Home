@@ -1,6 +1,8 @@
 import pygame
 from .Cuadro_Texto import TextRectInv
 from .Config import *
+from .Boton_independiente import Button_parent
+from .Objetos import *
 
 class Inventario:
     def __init__(self, player, totalslots, cols, rows):
@@ -8,6 +10,9 @@ class Inventario:
         self.totalSlots = totalslots
         self.cols = cols
         self.rows = rows
+        self.objetos = [PICO, AZADA]
+        self.buttom_craft = Button_parent(rect=pygame.Rect(200, UIHEIGTH, 50, 40), color=RED, element="craftear")
+        self.buttom_craft.repaint()
         self.inventory_slots = []
         self.appendSlots()
 
@@ -27,6 +32,7 @@ class Inventario:
 
     def draw(self, surface):
         if self.display:
+            surface.blit(self.buttom_craft.image, self.buttom_craft.rect)
             for slot in self.inventory_slots:
                 slot.draw(surface)
                 slot.drawItems(surface)
@@ -34,7 +40,7 @@ class Inventario:
             for slot in self.inventory_slots:
                 slot.text_rect.draw(surface)
 
-    def addItemInv(self, item, slot=None):
+    def addItemInv(self, item, slot=None, add=False):
 
         if slot == None:
             for slots in self.inventory_slots:
@@ -45,29 +51,82 @@ class Inventario:
                     break
                 else:
                     if slots.item.id == item.id:
-                        if slots.item.is_acum and slots.cant < item.max_acum:
+                        if slots.item.is_acum and slots.cant < slots.item.max_acum:
                             slots.cant += 1
                             break
-                        elif slots.cant > item.max_acum:
+                        elif slots.item.is_acum and slots.cant > slots.item.max_acum:
                             break
+                        elif not slots.item.is_acum:
+                            continue
 
 
         if slot != None:
-            if slot.item != None:
-                self.swap_items(slot)
+            if not add:
+                if slot.item != None:
+                    self.movingitemslot.item = slot.item
+                    slot.item = item
+                else:
+                    slot.item = item
             else:
                 slot.item = item
-                slot.update()
-                slot.cant = self.slot_cant
-                self.moving = False
 
-    def removeItemInv(self, item):
+    def removeItemInv(self, item, cantidad=None):
+        if item.is_acum:
+            if cantidad:
+                for slot in self.inventory_slots:
+                    if slot.item == item:
+                        slot.cant -= cantidad
+                        if slot.cant == 0:
+                            slot.item = None
+                        break
+            else:
+                for slot in self.inventory_slots:
+                    if slot.item == item:
+                        slot.cant = 0
+                        slot.item = None
+                        break
+        else:
+            for slot in self.inventory_slots:
+                if slot.item == item:
+                    slot.item = None
+                    break
+
+
+    def removeItems(self, items):
+        for item in items.materiales:
+            for slot in self.inventory_slots:
+                if slot.item != None:
+                    if slot.item.nombre == item.nombre:
+                        if slot.cant >= item.cantidad:
+                            slot.cant -= item.cantidad
+                            if slot.cant == 0:
+                                slot.item = None
+                            break
+
+    def update_crafting(self):
+        for object in self.objetos:
+            objetos_disponible = []
+            for item in object.materiales:
+                for slot in self.inventory_slots:
+                    if slot.item != None:
+                        if slot.item.nombre == item.nombre:
+                            if slot.cant >= item.cantidad:
+                                objetos_disponible.append(slot.item.nombre)
+
+            lista_materiales = [material.nombre for material in object.materiales]
+
+            if lista_materiales == objetos_disponible:
+                self.player.objetos_crafteables.append(object)
+            else:
+                if object in self.player.objetos_crafteables:
+                    self.player.objetos_crafteables.remove(object)
+
+    def check_items(self, item):
         for slot in self.inventory_slots:
-            if slot.item == item:
-                if slot.item.is_acum:
-                    slot.cant = 0
-                slot.item = None
-                break
+            if slot.item != None:
+                if slot.cant >= item.cantidad:
+                    return True
+        return False
 
     def swap_items(self, slot):
         res = None
@@ -181,31 +240,6 @@ class barSlot(InventorySlot):
         else:
             return
 
-class Item:
-    def __init__(self, nombre, id, type, desc=DESC):
-        self.nombre = nombre
-        self.image = pygame.Surface((30, 30))
-        self.image.fill(YELLOW)
-        self.is_moving = False
-        self.id = id
-        self.type = type
-        self.is_acum = False
-        self.desc = desc
-        self.rect = self.image.get_rect()
-
-class Item_acum(Item):
-    def __init__(self, nombre, id, max_acum=200, tool="hacha"):
-        super(Item_acum, self).__init__(nombre, id, "material")
-        self.max_acum = max_acum
-        self.is_acum = True
-        self.tool = tool
-
-class Tool(Item):
-    def __init__(self, nombre, id, stregth):
-        super(Tool, self).__init__(nombre, id, "tool")
-        self.streght = stregth
-        self.is_acum = False
-
 class Toolbar:
     def __init__(self, player, totalslots, cols, rows):
         self.player = player
@@ -227,6 +261,5 @@ class Toolbar:
         for slot in self.bar_slots:
             slot.draw(surface)
             slot.drawItems(surface)
-
 
 

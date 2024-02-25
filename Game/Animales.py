@@ -7,7 +7,7 @@ class Animal(pygame.sprite.Sprite):
     def __init__(self, left, bottom, nombre=None):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((30, 30))
-        self.image.fill(TEST)
+        self.image.fill(DARK_GREEN_TWO)
         self.rect = self.image.get_rect()
         self.rect.left = left
         self.rect.bottom = bottom

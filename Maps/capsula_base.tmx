@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="8" height="8" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="1">
+ <tileset firstgid="1" source="Tile_casas.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="8" height="8">
+  <data encoding="csv">
+6,6,6,6,6,6,6,6,
+6,1,2,2,2,2,4,6,
+6,13,14,14,14,14,16,6,
+6,13,14,14,14,14,16,6,
+6,13,14,14,14,14,16,6,
+6,13,14,14,14,14,16,6,
+6,25,27,15,15,27,28,6,
+6,6,6,0,0,6,6,6
+</data>
+ </layer>
+ <layer id="2" name="Doors" width="8" height="8">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,8,9,0,0,0
+</data>
+ </layer>
+</map>

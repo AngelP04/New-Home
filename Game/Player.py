@@ -1,21 +1,29 @@
+import pygame.image
+
 from .Recursos import *
-import pygame
-import math
 from .Inventario import *
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, left, bottom):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((30, 30))
-        self.image.fill(BLUE)
+        self.sheet = pygame.image.load(JUGADOR_M)
+        self.sheet = pygame.transform.scale(self.sheet, (260, 260))
+        self.sheet.set_clip(pygame.Rect(29, 9, 30, 50))
+        self.image = self.sheet.subsurface(self.sheet.get_clip())
         self.rect = self.image.get_rect()
         self.rect.left = left
         self.rect.bottom = bottom
+        self.frame = 0
+        self.down_states = {0: (29, 9, 30, 50), 1: (48, 9, 30, 50), 2: (67, 9, 30, 50), 3: (86, 9, 30, 50)}
+        self.up_states = {0: (29, 67, 30, 50), 1: (48, 67, 30, 50), 2: (67, 67, 30, 50), 3: (86, 67, 30, 50)}
+        self.left_states = {0: (29, 126, 30, 50), 1: (48, 126, 30, 50)}
+        self.right_states = {0: (29, 183, 30, 50), 1: (48, 183, 30, 50)}
         self.pos_x = self.rect.left
         self.pos_y = self.rect.bottom
         self.biologo = False
         self.coll = ""
         self.animals_knows = []
+        self.objetos_crafteables = []
         self.speed_x = SPEED
         self.speed_y = SPEED
         self.vel_x = 0
@@ -29,25 +37,78 @@ class Player(pygame.sprite.Sprite):
         self.material_mine = None
         self.inventario = Inventario(self, 15, 5, 3)
         self.toolbar = Toolbar(self, 5, 5, 1)
-        self.inventario.addItemInv(Tool("hacha", 5, 1))
-        self.inventario.addItemInv(Regadera(5))
-        self.inventario.addItemInv(Tool("azada", 8, 1))
+        self.inventario.addItemInv(HACHA)
+        self.inventario.addItemInv(REGADERA)
+        self.inventario.addItemInv(AZADA)
 
         self.playing = True
         self.can_move = True
         self.moving = False
         self.colliding = False
 
-    def move(self, value):
-        if value == 1:
-            self.vel_x += self.speed_x
-        elif value == -1:
-            self.vel_x -= self.speed_x
-        elif value == 2:
-            self.vel_y += self.speed_y
+    def get_frame(self, frame_set):
+        self.frame += 1
+        if self.frame > (len(frame_set) - 1):
+            self.frame = 0
+        return frame_set[self.frame]
+
+    def clip(self, clipped_rect):
+        if type(clipped_rect) is dict:
+            self.sheet.set_clip(pygame.Rect(self.get_frame(clipped_rect)))
         else:
+            self.sheet.set_clip(pygame.Rect(clipped_rect))
+        return clipped_rect
+
+    def handle_event(self, event):
+        if event.type == pygame.QUIT:
+            game_over = True
+        key = pygame.key.get_pressed()
+        self.vel_x = 0
+        self.vel_y = 0
+
+        if key[pygame.K_d]:
+            self.move('right')
+        elif key[pygame.K_a]:
+            self.move('left')
+        elif key[pygame.K_s]:
+            self.move('down')
+        elif key[pygame.K_w]:
+            self.move('up')
+
+        if event.type == pygame.KEYUP:
+            self.vel_x = 0
+            self.vel_y = 0
+            if event.key == pygame.K_LEFT:
+                self.move('stand_left')
+            if event.key == pygame.K_RIGHT:
+                self.move('stand_right')
+            if event.key == pygame.K_UP:
+                self.move('stand_up')
+            if event.key == pygame.K_DOWN:
+                self.move('stand_down')
+
+    def move(self, direction):
+        if direction == 'left':
+            self.clip(self.left_states)
+            self.vel_x -= self.speed_x
+        if direction == 'right':
+            self.clip(self.right_states)
+            self.vel_x += self.speed_x
+        if direction == 'up':
+            self.clip(self.up_states)
             self.vel_y -= self.speed_y
-        self.vista = value
+        if direction == 'down':
+            self.clip(self.down_states)
+            self.vel_y += self.speed_y
+
+        if direction == 'stand_left':
+            self.clip(self.left_states[0])
+        if direction == 'stand_right':
+            self.clip(self.right_states[0])
+        if direction == 'stand_up':
+            self.clip(self.up_states[0])
+        if direction == 'stand_down':
+            self.clip(self.down_states[0])
 
     def run(self, value):
         if value == 1:
@@ -126,37 +187,11 @@ class Player(pygame.sprite.Sprite):
             if not self.colliding:
                 return True
 
-    def cultive(self, grupo, colision, day):
-        posible = True
-        good = True
-        for tipo in colision:
-            for c in tipo:
-                if (c.pos_x > self.pos_x and self.vista == 1) or (c.pos_x < self.pos_x and self.vista == -1) or (c.pos_y > self.pos_y and self.vista == 2) or (c.pos_y < self.pos_y and self.vista == -2):
-                    dist = math.fabs(pygame.math.Vector2(self.pos_x, self.pos_y).distance_to((c.pos_x, c.pos_y)))
-                    if dist > 50:
-                        posible = True
-                    else:
-                        posible = False
-                        break
-            if posible:
-                good = True
-                continue
-            else:
-                good = False
-                break
-
+    def cultive(self, tile, grupo, day):
         if self.verify_select_slot().item.nombre == "semilla":
-            if good:
-                if self.vista == 1:
-                    planta = Seed(self.pos_x + 50, self.pos_y, self.material_mine, day)
-                elif self.vista == -1:
-                    planta = Seed(self.pos_x - 50, self.pos_y, self.material_mine, day)
-                elif self.vista == 2:
-                    planta = Seed(self.pos_x, self.pos_y + 50, self.material_mine, day)
-                else:
-                    planta = Seed(self.pos_x, self.pos_y - 50, self.material_mine, day)
-                self.check_slot_inventory(Item_acum("semilla", 2)).cant -= 1
-                grupo.add(planta)
+            planta = Seed(tile.pos[0], tile.pos[1], self.material_mine, day)
+            self.check_slot_inventory(SEMILLA).cant -= 1
+            grupo.add(planta)
 
     def interct(self, grupo):
         for npc in grupo:
@@ -168,10 +203,10 @@ class Player(pygame.sprite.Sprite):
     def valid_tiles(self, map):
         tile_collide = None
 
-        for tile in map.lista:
+        for tile in map.tiles:
             tile.valid = False
             if tile_collide == None:
-                if self.rect.collidepoint(tile.rect.center):
+                if pygame.sprite.collide_mask(self, tile):
                     tile_collide = tile
                     return tile_collide
 
@@ -210,11 +245,23 @@ class Player(pygame.sprite.Sprite):
                 grupo.add(item_drop)
 
     def update_inventory(self):
+        self.inventario.update_crafting()
         for slot in self.inventario.inventory_slots:
             if slot.item != None:
                 if slot.item.is_acum:
                     if slot.cant == 0:
                         slot.item = None
+
+
+    def check_cant(self, cantidades, slot):
+        suficiente = False
+        for cantidad in cantidades:
+            if slot.cant >= cantidad:
+                suficiente = True
+            else:
+                suficiente = False
+                break
+        return suficiente
 
     def check_animals(self, animal): #Funcion del jugaodr
         dx = abs(self.rect.left - animal.rect.left)
@@ -223,7 +270,7 @@ class Player(pygame.sprite.Sprite):
         if animal.nombre in self.animals_knows:
             return
 
-        if dx < 100 and dy < 100:
+        if dx < 200 and dy < 200:
             return True
 
     def stop_move(self):
@@ -233,6 +280,7 @@ class Player(pygame.sprite.Sprite):
     def update(self):
         if self.playing:
             self.colliding = False
+            self.image = self.sheet.subsurface(self.sheet.get_clip())
             self.update_pos()
             self.rect.left = self.pos_x
             self.rect.bottom = self.pos_y
@@ -322,10 +370,18 @@ class Player(pygame.sprite.Sprite):
                     return slot
 
     def check_slot_inventory(self, item):
-        for slot in self.inventario.inventory_slots:
-            if slot.item != None:
-                if slot.item.id == item.id:
-                    return slot
+        if type(item) == dict:
+            items = item["item"]
+            for item in items:
+                for slot in self.inventario.inventory_slots:
+                    if slot.item != None:
+                        if slot.item.id == item.id:
+                            return slot
+        else:
+            for slot in self.inventario.inventory_slots:
+                if slot.item != None:
+                    if slot.item.id == item.id:
+                        return slot
 
     def verify_inventory(self, item):
         pos = False
@@ -359,15 +415,6 @@ class Raycast(pygame.sprite.Sprite):
     def update(self):
         self.rect.center = self.player.rect.center
         self.collide = False
-
-class Regadera(Tool):
-    def __init__(self, agua):
-        Tool.__init__(self, "regadera", 6, 0)
-        self.agua = agua
-
-    def regar(self):
-        if self.agua >= 1:
-            self.agua -= 1
 
 
 
