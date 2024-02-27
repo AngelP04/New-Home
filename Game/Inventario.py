@@ -1,6 +1,4 @@
-import pygame
 from .Cuadro_Texto import TextRectInv
-from .Config import *
 from .Boton_independiente import Button_parent
 from .Objetos import *
 
@@ -26,6 +24,17 @@ class Inventario:
             for y in range(UIHEIGTH, UIHEIGTH + INVTILESIZE * self.rows, INVTILESIZE + 5):
                 for x in range(WIDTH // 2 - ((INVTILESIZE + 5) * self.cols) // 2, WIDTH // 2 + ((INVTILESIZE + 5) * self.cols) // 2, INVTILESIZE + 5):
                     self.inventory_slots.append(InventorySlot(x, y))
+
+    def add_slots(self):
+        self.totalSlots += 5
+        max_distance = 0
+        if len(self.inventory_slots) != self.totalSlots:
+            for slot in self.inventory_slots:
+                slot.y -= INVTILESIZE // 2
+                if slot.y > max_distance:
+                    max_distance = slot.y
+            for x in range(WIDTH // 2 - ((INVTILESIZE + 5) * self.cols) // 2, WIDTH // 2 + ((INVTILESIZE + 5) * self.cols) // 2, INVTILESIZE + 5):
+                    self.inventory_slots.append(InventorySlot(x, max_distance + INVTILESIZE))
 
     def display_inventory(self):
         self.display = not self.display
@@ -74,42 +83,33 @@ class Inventario:
         if item.is_acum:
             if cantidad:
                 for slot in self.inventory_slots:
-                    if slot.item == item:
-                        slot.cant -= cantidad
-                        if slot.cant == 0:
-                            slot.item = None
-                        break
+                    if slot.item != None:
+                        if slot.item.id == item.id:
+                            slot.cant -= cantidad
+                            if slot.cant == 0:
+                                slot.item = None
+                            break
             else:
                 for slot in self.inventory_slots:
-                    if slot.item == item:
-                        slot.cant = 0
-                        slot.item = None
-                        break
+                    if slot.item != None:
+                        if slot.item == item:
+                            slot.cant = 0
+                            slot.item = None
+                            break
         else:
             for slot in self.inventory_slots:
                 if slot.item == item:
                     slot.item = None
                     break
 
-
-    def removeItems(self, items):
-        for item in items.materiales:
-            for slot in self.inventory_slots:
-                if slot.item != None:
-                    if slot.item.nombre == item.nombre:
-                        if slot.cant >= item.cantidad:
-                            slot.cant -= item.cantidad
-                            if slot.cant == 0:
-                                slot.item = None
-                            break
-
     def update_crafting(self):
+        self.player.objetos_crafteables.clear()
         for object in self.objetos:
             objetos_disponible = []
             for item in object.materiales:
                 for slot in self.inventory_slots:
                     if slot.item != None:
-                        if slot.item.nombre == item.nombre:
+                        if slot.item.id == item.id:
                             if slot.cant >= item.cantidad:
                                 objetos_disponible.append(slot.item.nombre)
 
@@ -124,8 +124,9 @@ class Inventario:
     def check_items(self, item):
         for slot in self.inventory_slots:
             if slot.item != None:
-                if slot.cant >= item.cantidad:
-                    return True
+                if slot.item.id == item.id:
+                    if slot.cant >= item.cantidad:
+                        return True
         return False
 
     def swap_items(self, slot):

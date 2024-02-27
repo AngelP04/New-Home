@@ -74,13 +74,11 @@ class game:
 
         self.fernan = Biologo(200, 50)
 
-        self.arbol = Recurso(200, 70, 5, "Arbol", item=MADERA, item_second=SEMILLA)
+        self.arbol = Recurso(200, 70, 10, "Arbol", item=MADERA, item_second=SEMILLA)
 
         self.roca = Recurso(200, 120, 5, "Roca", item=PIEDRA)
 
         self.sprites_inside = pygame.sprite.Group()
-
-        self.Jugador = pygame.sprite.Group()
 
         self.Cursor = pygame.sprite.Group()
 
@@ -93,6 +91,8 @@ class game:
         self.seeds = pygame.sprite.Group()
 
         self.doors = pygame.sprite.Group()
+
+        self.objects = pygame.sprite.Group()
 
         self.create_cinematic()
 
@@ -121,7 +121,6 @@ class game:
         self.camera.add(self.player)
         self.camera.add(self.fernan)
         self.camera.add(self.animal)
-        self.Jugador.add(self.player)
         self.camera.add(self.arbol)
         self.camera.add(self.roca)
         self.recursos.add(self.arbol)
@@ -166,6 +165,8 @@ class game:
             return
 
         self.update_day()
+
+        print(self.clock)
 
         for animal in self.player.animals_knows:
             if animal not in self.fernan.animals:
@@ -250,7 +251,6 @@ class game:
     def draw(self):
         if self.drawing:
             self.surface.fill(BLACK)
-            pygame.draw.rect(self.surface, YELLOW, self.player.rect.move(self.current_camera.offset))
             self.current_camera.draws()
             self.player.toolbar.draw(self.surface)
             for slot in self.player.toolbar.bar_slots:
@@ -497,10 +497,9 @@ class game:
                                     self.display_text(self.cuadro_objetos.image, material.nombre + " " + str(material.cantidad) + "x", 18, color, 100, Distancia)
                                     Distancia += 30
                                 self.surface.blit(self.cuadro_objetos.image, self.cuadro_objetos.rect)
-                                if obj in self.player.objetos_crafteables:
-                                    self.surface.blit(obj.icon, (self.cuadro_objetos.rect.x + 30, self.cuadro_objetos.rect.y + 40))
 
                     if self.buttom_salir.rect.collidepoint(pygame.mouse.get_pos()):
+                        menu_craft.element = None
                         self.back_game()
                         self.state = "Playing"
                         crafting = False
@@ -510,7 +509,8 @@ class game:
                             for obj in self.player.inventario.objetos:
                                 if menu_craft.element.nombre == obj.nombre:
                                     if obj in self.player.objetos_crafteables:
-                                        self.player.inventario.removeItems(obj)
+                                        for item in obj.materiales:
+                                            self.player.inventario.removeItemInv(item, item.cantidad)
                                         self.player.inventario.addItemInv(obj)
                                         self.back_game()
                                         menu_craft.element = None
@@ -640,10 +640,9 @@ class game:
                 pygame.quit()
                 sys.exit()
 
-            key = pygame.key.get_pressed()
             mouse = self.cursor.rect.center
 
-            self.player.handle_event(event)
+            self.player.handle_event()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pygame.mouse.get_pressed()[0]:
@@ -655,8 +654,11 @@ class game:
                             elif npc == self.fernan and not self.fernan.freedom:
                                 self.state = "menu_fernan"
                             break
+                    for object in self.objects:
+                        if object.rect.collidepoint(mouse):
+                            object.on_click()
                 elif pygame.mouse.get_pressed()[2]:
-                    self.player.cultive(self.map.tile_select, self.seeds, self.day)
+                    self.player.put_item(self.map.tile_select, self.objects)
 
             if event.type == pygame.MOUSEMOTION:
                 if not self.cursor.initial:
@@ -683,14 +685,6 @@ class game:
                 elif event.key == pygame.K_5:
                     self.player.select_slot(4)
                     self.slot_select = 4
-
-                if event.key == pygame.K_l:
-                    if self.current_camera == self.camera:
-                        self.current_camera = self.camera_cinematicas
-                        self.map.in_cinematic = True
-                    else:
-                        self.current_camera = self.camera
-                        self.map.in_cinematic = False
 
                 if event.key == pygame.K_RIGHT and self.slot_select < 4:
                     self.slot_select += 1
@@ -781,28 +775,30 @@ class game:
                         if self.menu_estructuras.element != None:
                             for est in self.map.estructuras_disp:
                                 if self.menu_estructuras.element.nombre == est.nombre:
-                                    for slot in self.player.inventario.inventory_slots:
-                                        if slot.item != None:
-                                            if slot.item.nombre in est.materials:
-                                                if slot.cant >= est.materials[slot.item.nombre]:
-                                                    est.builded = True
-                                                    found = True
-                                                    self.back_game()
-                                                    self.stop_characters()
-                                                    self.menu_estructuras.element = None
-                                                    self.state = "Playing"
-                                                    building = False
-                                                    break
-                                                else:
-                                                    self.cuadro_texto.image.fill(GREEN)
-                                                    cont = 0
-                                                    distancia_letras_x = 50
-                                                    texto = "No tienes suficientes materiales"
-                                    if not found:
-                                        self.cuadro_texto.image.fill(GREEN)
-                                        cont = 0
-                                        distancia_letras_x = 50
-                                        texto = "No tienes suficientes materiales"
+                                    for material in est.materials:
+                                        if self.player.inventario.check_items(material):
+                                            found = True
+                                        else:
+                                            found = False
+                        if not found:
+                            self.cuadro_texto.image.fill(GREEN)
+                            cont = 0
+                            distancia_letras_x = 50
+                            texto = "No tienes suficientes materiales"
+                        else:
+                            for est in self.map.estructuras_disp:
+                                if self.menu_estructuras.element.nombre == est.nombre:
+                                    for material in est.materials:
+                                            self.player.inventario.removeItemInv(material, material.cantidad)
+                                    est.builded = True
+                            self.back_game()
+                            self.stop_characters()
+                            self.current_camera.add(est)
+                            self.map.estructuras.append(est)
+                            self.map.estructuras_disp.remove(est)
+                            self.state = "Playing"
+                            building = False
+                            break
 
             if self.menu_estructuras.element == temp:
                 if cont < len(texto):

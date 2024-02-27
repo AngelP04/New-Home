@@ -15,12 +15,11 @@ class menu(Widget):
             for accion in interaccion:
                 height += 30
                 self.buttom = Button(self, rect=pygame.rect.Rect(buttom_left, Separacion_vertical, buttom_width, buttom_height), color=PINK, element=accion, lista=interaccion)
+                self.buttom.select = False
                 Separacion_vertical += 30
                 if selections != None:
                     if self.buttom.element in selections:
                         self.buttom.select = True
-                    else:
-                        self.buttom.select = False
                 self.buttom.repaint()
                 self.lista.append(self.buttom)
         else:

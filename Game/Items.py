@@ -16,7 +16,7 @@ class Item:
         self.rect = self.image.get_rect()
 
 class Item_acum(Item):
-    def __init__(self, nombre, id, max_acum=200, tool="hacha"):
+    def __init__(self, nombre, id, max_acum=200, tool="Hacha"):
         super(Item_acum, self).__init__(nombre, id, "material")
         self.max_acum = max_acum
         self.is_acum = True
@@ -52,3 +52,4 @@ class Craft_Item:
         self.nombre = material.nombre
         self.id = material.id
         self.cantidad = cantidad
+        self.is_acum = True

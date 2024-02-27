@@ -123,6 +123,7 @@ class Map(pygame.sprite.Group): #Este mapa es una camara en la cual se dibujan t
                         if estructura.builded:
                             obj.visible = True
                             self.estructuras.append(estructura)
+                            self.estructuras_disp.remove(estructura)
 
     def ajust_cinematic(self, cinematica):
         pos = ""

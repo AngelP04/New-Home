@@ -6,22 +6,21 @@ from .Inventario import *
 class Player(pygame.sprite.Sprite):
     def __init__(self, left, bottom):
         pygame.sprite.Sprite.__init__(self)
-        self.sheet = pygame.image.load(JUGADOR_M)
-        self.sheet = pygame.transform.scale(self.sheet, (260, 260))
-        self.sheet.set_clip(pygame.Rect(29, 9, 30, 50))
-        self.image = self.sheet.subsurface(self.sheet.get_clip())
+        self.image = pygame.image.load(JUGADOR_M)
+        self.image = pygame.transform.scale(self.image, (64, 64))
+        self.walk_front = [pygame.image.load(f'Images/Jugador/Movimiento/Jugador_M_Frente_{i}.png') for i in range(1, 3)]
+        self.walk_back = [pygame.image.load(f'Images/Jugador/Movimiento/Jugador_M_Espalda_{i}.png') for i in range(1, 3)]
+        self.walk_right = [pygame.image.load(f'Images/Jugador/Movimiento/Jugador_M_Derecha_{i}.png') for i in range(1, 3)]
+        self.walk_left = [pygame.image.load(f'Images/Jugador/Movimiento/Jugador_M_Izquierda_{i}.png') for i in range(1, 3)]
         self.rect = self.image.get_rect()
         self.rect.left = left
         self.rect.bottom = bottom
-        self.frame = 0
-        self.down_states = {0: (29, 9, 30, 50), 1: (48, 9, 30, 50), 2: (67, 9, 30, 50), 3: (86, 9, 30, 50)}
-        self.up_states = {0: (29, 67, 30, 50), 1: (48, 67, 30, 50), 2: (67, 67, 30, 50), 3: (86, 67, 30, 50)}
-        self.left_states = {0: (29, 126, 30, 50), 1: (48, 126, 30, 50)}
-        self.right_states = {0: (29, 183, 30, 50), 1: (48, 183, 30, 50)}
+        self.frame = 1
         self.pos_x = self.rect.left
         self.pos_y = self.rect.bottom
         self.biologo = False
         self.coll = ""
+        self.last_direction = ""
         self.animals_knows = []
         self.objetos_crafteables = []
         self.speed_x = SPEED
@@ -40,93 +39,104 @@ class Player(pygame.sprite.Sprite):
         self.inventario.addItemInv(HACHA)
         self.inventario.addItemInv(REGADERA)
         self.inventario.addItemInv(AZADA)
+        self.inventario.addItemInv(Item("Horno", 20, "Objeto", obj=Horno(self)))
 
         self.playing = True
         self.can_move = True
         self.moving = False
         self.colliding = False
 
-    def get_frame(self, frame_set):
-        self.frame += 1
-        if self.frame > (len(frame_set) - 1):
-            self.frame = 0
-        return frame_set[self.frame]
+    def put_item(self, tile, group): #Funcion para colocar items como decoraciones, cofres, entre otros que se vayan añadiendo
+        if self.verify_select_slot().item.obj != None:
+            obj = self.verify_select_slot().item.obj
+            obj.get_pos(tile.pos)
+            self.groups()[0].add(obj)
+            group.add(obj)
 
-    def clip(self, clipped_rect):
-        if type(clipped_rect) is dict:
-            self.sheet.set_clip(pygame.Rect(self.get_frame(clipped_rect)))
-        else:
-            self.sheet.set_clip(pygame.Rect(clipped_rect))
-        return clipped_rect
-
-    def handle_event(self, event):
-        if event.type == pygame.QUIT:
-            game_over = True
+    def handle_event(self): #Funcion para manejar los eventos
         key = pygame.key.get_pressed()
+        mods = pygame.key.get_mods()
         self.vel_x = 0
         self.vel_y = 0
+        match self.last_direction:
+            case 'left':
+                self.image = self.walk_left[0]
+            case 'right':
+                self.image = self.walk_right[0]
+            case 'up':
+                self.image = pygame.image.load('Images/Jugador/Movimiento/Jugador_M_Espalda_Quieto.png')
+            case 'down':
+                self.image = pygame.image.load('Images/Jugador/Movimiento/Jugador_M_Frente_Quieto.png')
 
         if key[pygame.K_d]:
-            self.move('right')
-        elif key[pygame.K_a]:
-            self.move('left')
-        elif key[pygame.K_s]:
-            self.move('down')
-        elif key[pygame.K_w]:
-            self.move('up')
+            self.frame += 0.1
+            if self.frame >= len(self.walk_right):
+                self.frame = 0
+            self.image = self.walk_right[int(self.frame)]
+            if mods & pygame.KMOD_CTRL:
+                self.run('right')
+            else:
+                self.move('right')
+            self.last_direction = 'right'
+        if key[pygame.K_a]:
+            self.frame += 0.1
+            if self.frame >= len(self.walk_left):
+                self.frame = 0
+            self.image = self.walk_left[int(self.frame)]
+            if mods & pygame.KMOD_CTRL:
+                self.run('left')
+            else:
+                self.move('left')
+            self.last_direction = 'left'
+        if key[pygame.K_s]:
+            self.frame += 0.1
+            if self.frame >= len(self.walk_front):
+                self.frame = 0
+            self.image = self.walk_front[int(self.frame)]
+            if mods & pygame.KMOD_CTRL:
+                self.run('down')
+            else:
+                self.move('down')
+            self.last_direction = 'down'
+        if key[pygame.K_w]:
+            self.frame += 0.1
+            if self.frame >= len(self.walk_front):
+                self.frame = 0
+            self.image = self.walk_back[int(self.frame)]
+            if mods & pygame.KMOD_CTRL:
+                self.run('up')
+            else:
+                self.move('up')
+            self.last_direction = 'up'
 
-        if event.type == pygame.KEYUP:
-            self.vel_x = 0
-            self.vel_y = 0
-            if event.key == pygame.K_LEFT:
-                self.move('stand_left')
-            if event.key == pygame.K_RIGHT:
-                self.move('stand_right')
-            if event.key == pygame.K_UP:
-                self.move('stand_up')
-            if event.key == pygame.K_DOWN:
-                self.move('stand_down')
+        self.image = pygame.transform.scale(self.image, (64, 64))
 
     def move(self, direction):
         if direction == 'left':
-            self.clip(self.left_states)
             self.vel_x -= self.speed_x
         if direction == 'right':
-            self.clip(self.right_states)
             self.vel_x += self.speed_x
         if direction == 'up':
-            self.clip(self.up_states)
             self.vel_y -= self.speed_y
         if direction == 'down':
-            self.clip(self.down_states)
             self.vel_y += self.speed_y
 
-        if direction == 'stand_left':
-            self.clip(self.left_states[0])
-        if direction == 'stand_right':
-            self.clip(self.right_states[0])
-        if direction == 'stand_up':
-            self.clip(self.up_states[0])
-        if direction == 'stand_down':
-            self.clip(self.down_states[0])
-
-    def run(self, value):
-        if value == 1:
+    def run(self, direction):
+        if direction == 'right':
             self.vel_x += self.speed_running_x
-        elif value == -1:
+        if direction == 'left':
             self.vel_x -= self.speed_running_x
-        elif value == 2:
+        if direction == 'down':
             self.vel_y += self.speed_running_y
-        else:
+        if direction == 'up':
             self.vel_y -= self.speed_running_y
-        self.vista = value
 
     def collide_with(self, sprites):
        objects = pygame.sprite.spritecollide(self, sprites, False)
        if objects:
            return objects[0]
 
-    def validate_colision_estructura(self, estructura):
+    def validate_colision_estructura(self, estructura): #Funcion para detectar colisiones con estructuras, funciona distinto a validate_colision
         offset_x = estructura.rect.x - self.rect.x
         offset_y = estructura.rect.y - self.rect.y
         enter = False
@@ -153,7 +163,7 @@ class Player(pygame.sprite.Sprite):
             if (estructura.pos_y < self.pos_y and self.vel_y < 0) and not enter:
                 self.vel_y *= 0
 
-    def validate_colision(self, recurso):
+    def validate_colision(self, recurso): #Funcion para verificar la colision con objetos como arboles o piedras
         result = pygame.sprite.collide_mask(self, recurso)
 
         if result:
@@ -181,19 +191,23 @@ class Player(pygame.sprite.Sprite):
                 elif self.pos_y < tile.pos[1] and self.vel_y > 0:
                     self.vel_y *= 0
 
-    def validate_door(self, door):
+    def validate_door(self, door): #Funcion para detectar si el jugador entra por una puerta mientras no este colisionando con algo mas
         result = pygame.sprite.collide_rect(self, door)
         if result:
             if not self.colliding:
                 return True
 
     def cultive(self, tile, grupo, day):
+        '''
+        Funcion similar a put_item, pero que necesita la variable del dia
+        porque el proceso de la semilla depende de eso
+        '''
         if self.verify_select_slot().item.nombre == "semilla":
             planta = Seed(tile.pos[0], tile.pos[1], self.material_mine, day)
             self.check_slot_inventory(SEMILLA).cant -= 1
             grupo.add(planta)
 
-    def interct(self, grupo):
+    def interct(self, grupo): #Funcion para saber la distancia de los npcs saber si se puede hablar con alguno
         for npc in grupo:
             self.dx = abs(self.rect.left - npc.rect.left)
             self.dy = abs(self.rect.bottom - npc.rect.bottom)
@@ -217,8 +231,10 @@ class Player(pygame.sprite.Sprite):
                     if tile.cultivable:
                         tile.state = "arado"
 
-
     def drop(self, item, grupo, cant):
+        '''
+        Funcion para desechar los items desde el inventario
+        '''
         if item.type == "tool":
             pos = random.randrange(-20, 20)
             if self.vista == 1:
@@ -252,7 +268,6 @@ class Player(pygame.sprite.Sprite):
                     if slot.cant == 0:
                         slot.item = None
 
-
     def check_cant(self, cantidades, slot):
         suficiente = False
         for cantidad in cantidades:
@@ -263,7 +278,7 @@ class Player(pygame.sprite.Sprite):
                 break
         return suficiente
 
-    def check_animals(self, animal): #Funcion del jugaodr
+    def check_animals(self, animal): #Funcion similar a interct pero con animales
         dx = abs(self.rect.left - animal.rect.left)
         dy = abs(self.rect.top - animal.rect.top)
 
@@ -278,14 +293,13 @@ class Player(pygame.sprite.Sprite):
             return True
 
     def update(self):
+        self.update_inventory()
         if self.playing:
             self.colliding = False
-            self.image = self.sheet.subsurface(self.sheet.get_clip())
             self.update_pos()
             self.rect.left = self.pos_x
             self.rect.bottom = self.pos_y
             self.update_toolbar()
-            self.update_inventory()
             if self.vel_x != 0 or self.vel_y != 0:
                 self.moving = True
             else:
@@ -295,6 +309,9 @@ class Player(pygame.sprite.Sprite):
                 self.front = False
 
     def collide_items(self, items):
+        '''
+        Funcion para recoger items del suelo
+        '''
         items = pygame.sprite.spritecollide(self, items, True)
         if items:
             for item in items:
@@ -315,29 +332,28 @@ class Player(pygame.sprite.Sprite):
         for material in materials:
             self.dx = abs(self.pos_x - material.pos_x)
             self.dy = abs(self.pos_y - material.pos_y)
-            if self.dx < 45 and self.dy < 45:
+            if self.dx < 75 and self.dy < 75:
                 if self.verify_select_slot() != None:
                     if self.verify_select_slot().item.nombre == material.item.tool:
-                        if (material.pos_y > self.pos_y and self.vista == 2) or (material.pos_y < self.pos_y and self.vista == -2) or (material.pos_x > self.pos_x and self.vista == 1) or (material.pos_x < self.pos_x and self.vista == -1):
-                            if self.verify_inventory(material.item):
-                                self.inventario.addItemInv(material.item)
-                            else:
-                                material.drop(grupo)
-                            if material.item_second != None:
-                                if prob > 2:
-                                    if self.verify_inventory(material.item_second):
-                                        self.inventario.addItemInv(material.item_second)
-                                    else:
-                                        material.drop_second(grupo)
-                            self.material_mine = material
-                            material.mined()
-                            break
+                        if self.verify_inventory(material.item):
+                            self.inventario.addItemInv(material.item)
+                        else:
+                            material.drop(grupo)
+                        if material.item_second != None:
+                            if prob > 2:
+                                if self.verify_inventory(material.item_second):
+                                    self.inventario.addItemInv(material.item_second)
+                                else:
+                                    material.drop_second(grupo)
+                        self.material_mine = material
+                        material.mined()
+                        break
 
     def use_tool(self, semillas, materiales, tiles, grupo=None):
         if self.verify_select_slot().item != None:
             if self.verify_select_slot().item.nombre == "regadera":
                 self.regar(semillas)
-            elif self.verify_select_slot().item.nombre == "hacha":
+            elif self.verify_select_slot().item.nombre == "Hacha":
                 self.mine(materiales, grupo)
             elif self.verify_select_slot().item.nombre == "azada":
                 self.azar(tiles)

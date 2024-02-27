@@ -69,7 +69,7 @@ silo_lleno = 'Images/estructuras/Silolleno.png'
 silo_con_espacio = 'Images/estructuras/Silo con espacio.png'
 
 #Imagenes del jugador
-JUGADOR_M = 'Images/Jugador/Jugador M Sprites.png'
+JUGADOR_M = 'Images/Jugador/Jugador M.png'
 
 #Mapas
 HOME = 'Maps/Home.tmx'
