@@ -3,14 +3,16 @@ from .Boton_independiente import Button_parent
 from .Objetos import *
 
 class Inventario:
-    def __init__(self, player, totalslots, cols, rows):
+    def __init__(self, player, totalslots, cols, rows, craft_disp=True):
         self.player = player
         self.totalSlots = totalslots
         self.cols = cols
         self.rows = rows
-        self.objetos = [PICO, AZADA]
-        self.buttom_craft = Button_parent(rect=pygame.Rect(200, UIHEIGTH, 50, 40), color=RED, element="craftear")
-        self.buttom_craft.repaint()
+        self.craft_disp = craft_disp
+        self.objetos = [Tool("Pico", 10, 5, materiales=[Craft_Item(MADERA, 5)]), Tool("Azada", 8, 1, materiales=[Craft_Item(PIEDRA, 5), Craft_Item(MADERA, 10)])]
+        if self.craft_disp:
+            self.buttom_craft = Button_parent(rect=pygame.Rect(200, UIHEIGTH, 50, 40), color=RED, element="craftear")
+            self.buttom_craft.repaint()
         self.inventory_slots = []
         self.appendSlots()
 
@@ -19,10 +21,10 @@ class Inventario:
         self.display = False
         self.moving = False
 
-    def appendSlots(self):
+    def appendSlots(self, uiheight=UIHEIGTH, uiwidth=WIDTH):
         while len(self.inventory_slots) != self.totalSlots:
-            for y in range(UIHEIGTH, UIHEIGTH + INVTILESIZE * self.rows, INVTILESIZE + 5):
-                for x in range(WIDTH // 2 - ((INVTILESIZE + 5) * self.cols) // 2, WIDTH // 2 + ((INVTILESIZE + 5) * self.cols) // 2, INVTILESIZE + 5):
+            for y in range(uiheight, uiheight + INVTILESIZE * self.rows, INVTILESIZE + 5):
+                for x in range(uiwidth // 2 - ((INVTILESIZE + 5) * self.cols) // 2, uiwidth // 2 + ((INVTILESIZE + 5) * self.cols) // 2, INVTILESIZE + 5):
                     self.inventory_slots.append(InventorySlot(x, y))
 
     def add_slots(self):
@@ -41,7 +43,8 @@ class Inventario:
 
     def draw(self, surface):
         if self.display:
-            surface.blit(self.buttom_craft.image, self.buttom_craft.rect)
+            if self.craft_disp:
+                surface.blit(self.buttom_craft.image, self.buttom_craft.rect)
             for slot in self.inventory_slots:
                 slot.draw(surface)
                 slot.drawItems(surface)
@@ -178,8 +181,9 @@ class Inventario:
                 break
             elif not slots.draw(screen).collidepoint(mouse):
                 enter = False
-                if self.movingitem.is_acum:
-                    cant = self.slot_cant
+                if self.movingitem != None:
+                    if self.movingitem.is_acum:
+                        cant = self.slot_cant
                 continue
 
         if not enter:
@@ -217,7 +221,7 @@ class InventorySlot:
     def drawItems(self, screen):
         if self.item != None and not self.item.is_moving:
             self.image = self.item.image
-            screen.blit(self.image, (self.x + 5, self.y + 5))
+            screen.blit(self.image, (self.x - 10, self.y - 15))
             if self.item.is_acum:
                 self.display_text(screen, str(self.cant), 14, BLUE_Light, self.x + 30, self.y + 25)
         if self.item != None and self.item.is_moving:
@@ -262,5 +266,14 @@ class Toolbar:
         for slot in self.bar_slots:
             slot.draw(surface)
             slot.drawItems(surface)
+
+class Cofre(Object):
+    def __init__(self):
+        Object.__init__(self, nombre="Cofre", id=21)
+        self.inventario = Inventario(self, 20, 5, 4, craft_disp=False)
+        self.screen = pygame.display.get_surface()
+
+    def on_click(self):
+        return "Cofre"
 
 

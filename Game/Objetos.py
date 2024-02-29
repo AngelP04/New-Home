@@ -1,4 +1,6 @@
 from .Items import *
+import pygame
+from .Config import *
 
 class Regadera(Tool):
     def __init__(self, agua):
@@ -25,21 +27,20 @@ class Object(pygame.sprite.Sprite):
     def on_click(self):
         pass
 
+class Horno(Object):
+    def __init__(self):
+        Object.__init__(self, nombre="Horno", id=20)
+
+    def on_click(self):
+        print(1)
+
 #OBJETOS ACUMULABLES
 SEMILLA = Item_acum("semilla", 2)
 MADERA = Item_acum("Madera", 1)
 PIEDRA = Item_acum("Piedra", 3)
 
 #HERRAMIENTAS
-PICO = Tool("Pico", 10, 5, materiales=[Craft_Item(MADERA, 5)])
-AZADA = Tool("Azada", 8, 1, materiales=[Craft_Item(PIEDRA, 5), Craft_Item(MADERA, 10)])
-HACHA = Tool("Hacha", 5, 1)
+AZADA = Tool("Azada", 8, 1, materiales=[Craft_Item(PIEDRA, 5), Craft_Item(MADERA, 10)],image=pygame.image.load('Images/Objetos/Pico.png'))
+HACHA = Tool("Hacha", 5, 1, image=pygame.image.load('Images/Objetos/Azada.png'))
 REGADERA = Regadera(5)
 
-#OBJETOS QUE SE COLOCAN
-class Horno(Object):
-    def __init__(self, player):
-        Object.__init__(self, nombre="Horno", id=20, element=player)
-
-    def on_click(self):
-        print(1)

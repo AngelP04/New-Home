@@ -36,10 +36,8 @@ class Player(pygame.sprite.Sprite):
         self.material_mine = None
         self.inventario = Inventario(self, 15, 5, 3)
         self.toolbar = Toolbar(self, 5, 5, 1)
-        self.inventario.addItemInv(HACHA)
-        self.inventario.addItemInv(REGADERA)
         self.inventario.addItemInv(AZADA)
-        self.inventario.addItemInv(Item("Horno", 20, "Objeto", obj=Horno(self)))
+        self.inventario.addItemInv(HACHA)
 
         self.playing = True
         self.can_move = True
@@ -50,6 +48,7 @@ class Player(pygame.sprite.Sprite):
         if self.verify_select_slot().item.obj != None:
             obj = self.verify_select_slot().item.obj
             obj.get_pos(tile.pos)
+            self.inventario.removeItemInv(self.verify_select_slot().item)
             self.groups()[0].add(obj)
             group.add(obj)
 

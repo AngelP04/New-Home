@@ -107,8 +107,8 @@ class Map(pygame.sprite.Group): #Este mapa es una camara en la cual se dibujan t
                                 or (tile.id_x == tile_collide.id_x + 2 and tile.id_y == tile_collide.id_y - 2) or (
                                         tile.id_x == tile_collide.id_x + 2 and tile.id_y == tile_collide.id_y + 2)):
                             tile.valid = True
-                    else:
-                        tile.valid = False
+                else:
+                    tile.valid = False
 
     def update(self):
         for sprite in self.sprites():

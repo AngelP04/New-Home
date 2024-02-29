@@ -2,10 +2,9 @@ from .Config import *
 import pygame
 
 class Item:
-    def __init__(self, nombre, id, type, desc=DESC, materiales=None, obj=None):
+    def __init__(self, nombre, id, type, desc=DESC, materiales=None, obj=None, image=pygame.Surface((50, 50))):
         self.nombre = nombre
-        self.image = pygame.Surface((30, 30))
-        self.image.fill(YELLOW)
+        self.image = image
         self.is_moving = False
         self.id = id
         self.type = type
@@ -23,8 +22,9 @@ class Item_acum(Item):
         self.tool = tool
 
 class Tool(Item):
-    def __init__(self, nombre, id, stregth, materiales=None):
-        super(Tool, self).__init__(nombre, id, "tool", materiales=materiales)
+    def __init__(self, nombre, id, stregth, materiales=None, image=pygame.Surface((50,50))):
+        super(Tool, self).__init__(nombre, id, "tool", materiales=materiales, image=image)
+        self.image = pygame.transform.scale(self.image, (60, 60))
         self.streght = stregth
         self.is_acum = False
 

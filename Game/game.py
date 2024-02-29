@@ -38,6 +38,8 @@ class game:
 
         self.build_enter = None
 
+        self.obj = None
+
         self.slot_select = 0
 
         self.day = 1
@@ -166,8 +168,6 @@ class game:
 
         self.update_day()
 
-        print(self.clock)
-
         for animal in self.player.animals_knows:
             if animal not in self.fernan.animals:
                 self.fernan.animals.append(animal)
@@ -239,6 +239,8 @@ class game:
             self.menu_build()
         elif self.state == "Inventario":
             self.create_inventario()
+        elif self.state == "Cofre":
+            self.create_inventario_cofre()
         elif self.state == "inside-build":
             self.inside_build()
         elif self.state == "menu_fernan":
@@ -256,6 +258,8 @@ class game:
             for slot in self.player.toolbar.bar_slots:
                 slot.update(self.surface)
             self.player.inventario.draw(self.surface)
+            if self.obj != None:
+                self.obj.inventario.draw(self.surface)
         else:
             self.surface.fill(BLACK)
             if self.build_enter.size == "small":
@@ -628,6 +632,34 @@ class game:
                         self.state = "crafting"
                         inventary = False
 
+    def create_inventario_cofre(self):
+        self.stop_characters()
+        self.obj.inventario.display_inventory()
+        inventary = True
+
+        while inventary:
+            self.clock.tick(FPS)
+            self.draw()
+            self.player.update_toolbar()
+            mouse = pygame.mouse.get_pos()
+            pygame.display.flip()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    inventary = False
+                    self.running = False
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_e:
+                        self.map.update()
+                        self.obj.inventario.display_inventory()
+                        self.back_game()
+                        self.stop_characters()
+                        self.state = "Playing"
+                        inventary = False
+
     def back_game(self):
         self.playing = True
         for sprite in self.current_camera.sprites():
@@ -656,7 +688,8 @@ class game:
                             break
                     for object in self.objects:
                         if object.rect.collidepoint(mouse):
-                            object.on_click()
+                            self.obj = object
+                            self.state = object.on_click()
                 elif pygame.mouse.get_pressed()[2]:
                     self.player.put_item(self.map.tile_select, self.objects)
 

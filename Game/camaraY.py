@@ -46,7 +46,7 @@ class Ycamara(pygame.sprite.Group):
         for tile in self.sprites():
             if isinstance(tile, Tile):
                 if tile.selected:
-                    self.screen.blit(self.map.cursor.image, (tile.rect.centerx + self.offset.x + 15, tile.rect.centery + self.offset.y + 15))
+                    self.screen.blit(self.map.cursor.image, (tile.rect.centerx + self.offset.x - 17, tile.rect.centery + self.offset.y + 17))
 
     def draw_cursor(self):
         self.screen.blit(self.map.mouse.image, self.map.mouse.rect.move(self.offset.x, self.offset.y))
