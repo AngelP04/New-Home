@@ -36,6 +36,7 @@ class Player(pygame.sprite.Sprite):
         self.material_mine = None
         self.inventario = Inventario(self, 15, 5, 3)
         self.toolbar = Toolbar(self, 5, 5, 1)
+        self.inventario.addItemInv(Item("Cofre", id=20, type="Object", obj=Horno()))
         self.inventario.addItemInv(AZADA)
         self.inventario.addItemInv(HACHA)
 
@@ -45,6 +46,8 @@ class Player(pygame.sprite.Sprite):
         self.colliding = False
 
     def put_item(self, tile, group): #Funcion para colocar items como decoraciones, cofres, entre otros que se vayan añadiendo
+        if self.verify_select_slot()  == None:
+            return
         if self.verify_select_slot().item.obj != None:
             obj = self.verify_select_slot().item.obj
             obj.get_pos(tile.pos)
@@ -349,6 +352,8 @@ class Player(pygame.sprite.Sprite):
                         break
 
     def use_tool(self, semillas, materiales, tiles, grupo=None):
+        if self.verify_select_slot() == None:
+            return
         if self.verify_select_slot().item != None:
             if self.verify_select_slot().item.nombre == "regadera":
                 self.regar(semillas)
@@ -383,6 +388,8 @@ class Player(pygame.sprite.Sprite):
             if slot.select:
                 if slot.item != None:
                     return slot
+                else:
+                    return None
 
     def check_slot_inventory(self, item):
         if type(item) == dict:

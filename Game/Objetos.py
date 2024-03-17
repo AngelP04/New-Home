@@ -12,10 +12,10 @@ class Regadera(Tool):
             self.agua -= 1
 
 class Object(pygame.sprite.Sprite):
-    def __init__(self, nombre, id, element=None):
+    def __init__(self, nombre, load_bar=None):
         self.nombre = nombre
-        self.id = id
-        self.element = element
+        self.id = uuid.uuid4()
+        self.load_bar = load_bar
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((50, 50))
         self.image.fill(PINK)
@@ -27,20 +27,18 @@ class Object(pygame.sprite.Sprite):
     def on_click(self):
         pass
 
-class Horno(Object):
-    def __init__(self):
-        Object.__init__(self, nombre="Horno", id=20)
-
-    def on_click(self):
-        print(1)
+    def update(self):
+        pass
 
 #OBJETOS ACUMULABLES
-SEMILLA = Item_acum("semilla", 2)
-MADERA = Item_acum("Madera", 1)
-PIEDRA = Item_acum("Piedra", 3)
+SEMILLA = Item_acum("semilla", 11)
+MADERA_PROCESADA = Item_acum("Madera Procesada", 28)
+MADERA = Item_acum("Madera", 1, process=MADERA_PROCESADA)
+PIEDRA = Item_acum("Piedra", 2)
 
 #HERRAMIENTAS
-AZADA = Tool("Azada", 8, 1, materiales=[Craft_Item(PIEDRA, 5), Craft_Item(MADERA, 10)],image=pygame.image.load('Images/Objetos/Pico.png'))
-HACHA = Tool("Hacha", 5, 1, image=pygame.image.load('Images/Objetos/Azada.png'))
+HACHA_PROCESADA = Tool("Hacha Procesada", 15)
+AZADA = Tool("Azada", 8, materiales=[Craft_Item(PIEDRA, 5), Craft_Item(MADERA, 10)])
+HACHA = Tool("Hacha", 5, process=HACHA_PROCESADA)
 REGADERA = Regadera(5)
 

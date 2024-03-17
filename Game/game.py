@@ -1,6 +1,9 @@
 import os
 import sys
 import datetime
+import threading
+
+import pygame.draw
 
 from .Player import Player
 from .Recursos import *
@@ -177,6 +180,9 @@ class game:
 
         self.manager_cinematic.update()
 
+        if self.obj != None:
+            self.obj.update()
+
         if self.manager_cinematic.in_cinematic:
             self.map.in_cinematic = True
             self.current_camera = self.manager_cinematic.camera
@@ -260,6 +266,8 @@ class game:
             self.player.inventario.draw(self.surface)
             if self.obj != None:
                 self.obj.inventario.draw(self.surface)
+                if self.obj.load_bar != None:
+                    self.obj.load_bar.draw(self.surface)
         else:
             self.surface.fill(BLACK)
             if self.build_enter.size == "small":
@@ -271,7 +279,6 @@ class game:
             for slot in self.player.toolbar.bar_slots:
                 slot.update(self.surface)
             self.player.inventario.draw(self.surface)
-
         pygame.display.flip()
 
     def stop_draw(self):
@@ -634,12 +641,20 @@ class game:
 
     def create_inventario_cofre(self):
         self.stop_characters()
-        self.obj.inventario.display_inventory()
+        self.obj.inventario.move()
+        self.obj.inventario.display_inventory(True)
+        if self.obj.load_bar != None:
+            self.obj.load_bar.display_bar()
+        self.player.inventario.move("left")
+        self.player.inventario.display_inventory(True)
         inventary = True
 
         while inventary:
             self.clock.tick(FPS)
+            self.obj.inventario.check_select(self.surface)
+            self.player.inventario.check_select(self.surface)
             self.draw()
+            self.obj.update()
             self.player.update_toolbar()
             mouse = pygame.mouse.get_pos()
             pygame.display.flip()
@@ -654,11 +669,25 @@ class game:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_e:
                         self.map.update()
+                        self.player.inventario.display_inventory()
                         self.obj.inventario.display_inventory()
+                        if self.obj.load_bar != None:
+                            self.obj.load_bar.display_bar()
                         self.back_game()
                         self.stop_characters()
                         self.state = "Playing"
                         inventary = False
+
+                if event.type == pygame.MOUSEMOTION:
+                    self.player.inventario.show_info(self.surface)
+                    self.obj.inventario.show_info(self.surface)
+
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.player.inventario.moving and not self.obj.inventario.moving:
+                    self.player.inventario.moveItem(self.surface)
+                    self.obj.inventario.moveItem(self.surface)
+
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and (self.player.inventario.moving or self.obj.inventario.moving):
+                    self.player.inventario.placeItem(self.surface, self.items, inventario=self.obj.inventario)
 
     def back_game(self):
         self.playing = True

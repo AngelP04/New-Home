@@ -1,12 +1,17 @@
 from .Config import *
 import pygame
+import uuid
 
 class Item:
-    def __init__(self, nombre, id, type, desc=DESC, materiales=None, obj=None, image=pygame.Surface((50, 50))):
+    def __init__(self, nombre, type, id, desc=DESC, materiales=None, obj=None, process=None, progression=0.6):
+        self.progression = progression
         self.nombre = nombre
-        self.image = image
+        self.image = pygame.Surface((30, 30))
+        self.image.fill(YELLOW)
         self.is_moving = False
+        self.process = process
         self.id = id
+        self.id_propio = uuid.uuid4()
         self.type = type
         self.is_acum = False
         self.materiales = materiales
@@ -15,16 +20,15 @@ class Item:
         self.rect = self.image.get_rect()
 
 class Item_acum(Item):
-    def __init__(self, nombre, id, max_acum=200, tool="Hacha"):
-        super(Item_acum, self).__init__(nombre, id, "material")
+    def __init__(self, nombre, id, max_acum=200, tool="Hacha", process=None):
+        super(Item_acum, self).__init__(nombre, id=id, type="material", process=process)
         self.max_acum = max_acum
         self.is_acum = True
         self.tool = tool
 
 class Tool(Item):
-    def __init__(self, nombre, id, stregth, materiales=None, image=pygame.Surface((50,50))):
-        super(Tool, self).__init__(nombre, id, "tool", materiales=materiales, image=image)
-        self.image = pygame.transform.scale(self.image, (60, 60))
+    def __init__(self, nombre, id, stregth=0, materiales=None, process=None):
+        super(Tool, self).__init__(nombre, type="tool", id=id, materiales=materiales, process=process)
         self.streght = stregth
         self.is_acum = False
 
@@ -51,5 +55,6 @@ class Craft_Item:
     def __init__(self, material, cantidad):
         self.nombre = material.nombre
         self.id = material.id
+        self.id_propio = uuid.uuid4()
         self.cantidad = cantidad
         self.is_acum = True
