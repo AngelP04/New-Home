@@ -37,6 +37,11 @@ class Player(pygame.sprite.Sprite):
         self.inventario = Inventario(self, 15, 5, 3)
         self.toolbar = Toolbar(self, 5, 5, 1)
         self.inventario.addItemInv(Item("Cofre", id=20, type="Object", obj=Horno()))
+        self.inventario.addItemInv(MADERA)
+        self.inventario.addItemInv(MADERA)
+        self.inventario.addItemInv(MADERA)
+        self.inventario.addItemInv(MADERA)
+        self.inventario.addItemInv(MADERA)
         self.inventario.addItemInv(AZADA)
         self.inventario.addItemInv(HACHA)
 
@@ -55,83 +60,58 @@ class Player(pygame.sprite.Sprite):
             self.groups()[0].add(obj)
             group.add(obj)
 
-    def handle_event(self): #Funcion para manejar los eventos
-        key = pygame.key.get_pressed()
-        mods = pygame.key.get_mods()
-        self.vel_x = 0
-        self.vel_y = 0
-        match self.last_direction:
-            case 'left':
-                self.image = self.walk_left[0]
-            case 'right':
-                self.image = self.walk_right[0]
-            case 'up':
-                self.image = pygame.image.load('Images/Jugador/Movimiento/Jugador_M_Espalda_Quieto.png')
-            case 'down':
-                self.image = pygame.image.load('Images/Jugador/Movimiento/Jugador_M_Frente_Quieto.png')
-
-        if key[pygame.K_d]:
-            self.frame += 0.1
-            if self.frame >= len(self.walk_right):
-                self.frame = 0
-            self.image = self.walk_right[int(self.frame)]
-            if mods & pygame.KMOD_CTRL:
-                self.run('right')
-            else:
-                self.move('right')
-            self.last_direction = 'right'
-        if key[pygame.K_a]:
-            self.frame += 0.1
+    def move(self, direction):
+        self.frame += 0.3
+        if direction == 'left':
+            self.vel_x -= self.speed_x
             if self.frame >= len(self.walk_left):
                 self.frame = 0
+            self.vista = -1
             self.image = self.walk_left[int(self.frame)]
-            if mods & pygame.KMOD_CTRL:
-                self.run('left')
-            else:
-                self.move('left')
-            self.last_direction = 'left'
-        if key[pygame.K_s]:
-            self.frame += 0.1
-            if self.frame >= len(self.walk_front):
+        if direction == 'right':
+            self.vel_x += self.speed_x
+            if self.frame >= len(self.walk_right):
                 self.frame = 0
-            self.image = self.walk_front[int(self.frame)]
-            if mods & pygame.KMOD_CTRL:
-                self.run('down')
-            else:
-                self.move('down')
-            self.last_direction = 'down'
-        if key[pygame.K_w]:
-            self.frame += 0.1
-            if self.frame >= len(self.walk_front):
+            self.vista = 1
+            self.image = self.walk_right[int(self.frame)]
+        if direction == 'up':
+            self.vel_y -= self.speed_y
+            if self.frame >= len(self.walk_back):
                 self.frame = 0
+            self.vista = 2
             self.image = self.walk_back[int(self.frame)]
-            if mods & pygame.KMOD_CTRL:
-                self.run('up')
-            else:
-                self.move('up')
-            self.last_direction = 'up'
+        if direction == 'down':
+            self.vel_y += self.speed_y
+            if self.frame >= len(self.walk_front):
+                self.frame = 0
+            self.vista = 3
+            self.image = self.walk_front[int(self.frame)]
 
         self.image = pygame.transform.scale(self.image, (64, 64))
 
-    def move(self, direction):
-        if direction == 'left':
-            self.vel_x -= self.speed_x
-        if direction == 'right':
-            self.vel_x += self.speed_x
-        if direction == 'up':
-            self.vel_y -= self.speed_y
-        if direction == 'down':
-            self.vel_y += self.speed_y
-
     def run(self, direction):
+        self.frame += 0.3
         if direction == 'right':
             self.vel_x += self.speed_running_x
+            if self.frame >= len(self.walk_right):
+                self.frame = 0
+            self.image = self.walk_right[int(self.frame)]
         if direction == 'left':
             self.vel_x -= self.speed_running_x
+            if self.frame >= len(self.walk_front):
+                self.frame = 0
+            self.image = self.walk_left[int(self.frame)]
         if direction == 'down':
             self.vel_y += self.speed_running_y
+            if self.frame >= len(self.walk_front):
+                self.frame = 0
+            self.image = self.walk_front[int(self.frame)]
         if direction == 'up':
             self.vel_y -= self.speed_running_y
+            if self.frame >= len(self.walk_back):
+                self.frame = 0
+            self.image = self.walk_back[int(self.frame)]
+        self.image = pygame.transform.scale(self.image, (64, 64))
 
     def collide_with(self, sprites):
        objects = pygame.sprite.spritecollide(self, sprites, False)
@@ -216,15 +196,29 @@ class Player(pygame.sprite.Sprite):
             if self.dx < 75 and self.dy < 75:
                 return npc.nombre
 
-    def valid_tiles(self, map):
+    def valid_tile(self, map):
         tile_collide = None
 
         for tile in map.tiles:
-            tile.valid = False
+            if tile.selected:
+                break
             if tile_collide == None:
                 if pygame.sprite.collide_mask(self, tile):
                     tile_collide = tile
                     return tile_collide
+
+    def validate_tiles(self, map):
+        tile_collide = self.valid_tile(map)
+        for tile in map.tiles:
+            if tile_collide != None:
+                tile_collide.valid = True
+                if tile_collide != None:  # Se crea el y actualiza el area en el cual es valido seleccionar ciertos tiles dependiendo del tile que esta tocando el jugador
+                    if ((tile.id_x - 3 < tile_collide.id_x and tile.id_x + 3 > tile_collide.id_x) and (tile.id_y - 4 < tile_collide.id_y and tile.id_y + 2 > tile_collide.id_y)):
+                        if not ((tile.id_y - 2 > tile_collide.id_y and tile.id_x > tile_collide.id_x + 1) or
+                        (tile.id_y - 2 > tile_collide.id_y and tile.id_x < tile_collide.id_x - 1) or
+                        (tile.id_y < tile_collide.id_y and tile.id_x < tile_collide.id_x - 1) or
+                        (tile.id_y < tile_collide.id_y and tile.id_x > tile_collide.id_x + 1)):
+                            tile.valid = True
 
     def azar(self, tiles):
         for tile in tiles:
@@ -306,6 +300,16 @@ class Player(pygame.sprite.Sprite):
                 self.moving = True
             else:
                 self.moving = False
+                self.frame = 0
+                match self.last_direction:
+                    case 'left':
+                        self.image = self.walk_left[0]
+                    case 'right':
+                        self.image = self.walk_right[0]
+                    case 'up':
+                        self.image = pygame.image.load('Images/Jugador/Movimiento/Jugador_M_Espalda_Quieto.png')
+                    case 'down':
+                        self.image = pygame.image.load('Images/Jugador/Movimiento/Jugador_M_Frente_Quieto.png')
 
             if self.coll == None:
                 self.front = False

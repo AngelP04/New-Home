@@ -6,7 +6,6 @@ import threading
 import pygame.draw
 
 from .Player import Player
-from .Recursos import *
 from .npc import NPC, Biologo
 from .Menu_Constructor import menu
 from .Event import *
@@ -16,7 +15,7 @@ from .Inventario import *
 from .camaraY import Camera_Center, Box_Camera
 from .map import Map, Inside
 from .Cinematics import Cinematic, Cinematic_manager
-from .Animales import Animal
+from .Animales import Animal, Animal_slot
 
 npc_basico = {"left": 200, "bottom": 300, "nombre": "Fernan", "guion": DIALOGOS_NPC, "interactuar": INTERACTUAR_NPC, "dialogos_cinematicas": DIALOGOS_BIOLOGO_CINEMATICA}
 npc_constructor = {"left": 750, "bottom": 100, "nombre":"Roberto", "guion": DIALOGOS_ROBERTO, "interactuar": INTEREACTUAR_CONSTRUCTOR, "dialogos_cinematicas": DIALOGO_ROBERTO_CINEMATIC}
@@ -73,15 +72,17 @@ class game:
 
         self.animals = pygame.sprite.Group()
 
+        self.animals_slots = pygame.sprite.Group()
+
+        self.slot = Animal_slot([110, 310], "Señor de la montaña")
+
+        self.animals_slots.add(self.slot)
+
         self.animals.add(self.animal)
 
         self.npcs = pygame.sprite.Group()
 
         self.fernan = Biologo(200, 50)
-
-        self.arbol = Recurso(200, 70, 10, "Arbol", item=MADERA, item_second=SEMILLA)
-
-        self.roca = Recurso(200, 120, 5, "Roca", item=PIEDRA)
 
         self.sprites_inside = pygame.sprite.Group()
 
@@ -118,18 +119,19 @@ class game:
             self.estructuras.add(estructura)
             estructura.load_inside(Inside, self.player)
 
+        for mineral in self.map.minerales:
+            self.camera.add(mineral)
+            self.recursos.add(mineral)
+
         for npc in lista_npcs:
             self.npcs.add(npc)
             self.camera.add(npc)
             self.camera_cinematicas.add(npc)
 
         self.camera.add(self.player)
+        self.camera.add(self.slot)
         self.camera.add(self.fernan)
         self.camera.add(self.animal)
-        self.camera.add(self.arbol)
-        self.camera.add(self.roca)
-        self.recursos.add(self.arbol)
-        self.recursos.add(self.roca)
         self.npcs.add(self.fernan)
 
         self.current_camera = self.camera
@@ -189,7 +191,7 @@ class game:
 
         self.fernan.follow(self.player)
 
-
+        '''
         build = self.player.collide_with(self.estructuras)
         if build:
             for estructura in self.estructuras:
@@ -208,12 +210,15 @@ class game:
                     self.sprites_inside.add(self.cursor)
                 self.state = "inside-build"
                 break
+        '''
 
         for seed in self.seeds:
             self.camera.add(seed)
 
         for slot in self.player.toolbar.bar_slots:
             slot.update(self.surface)
+
+        self.player.validate_tiles(self.map)
 
         for item in self.items:
             if item not in self.current_camera.sprites():
@@ -224,13 +229,15 @@ class game:
         for recurso in self.recursos:
             if recurso not in self.current_camera.sprites():
                 self.current_camera.add(recurso)
-            self.player.validate_colision(recurso)
+            #self.player.validate_colision(recurso)
 
+        '''
         for npc in self.npcs:
             for estructura in self.estructuras:
                 npc.validate_colision(estructura)
             for recurso in self.recursos:
                 npc.validate_colision(recurso)
+        '''
 
         if self.state == "Talking":
             self.text_rect()
@@ -348,7 +355,6 @@ class game:
 
         distancia_letras_x = 60
         temp = None
-        found = False
         tiempo_letras = datetime.timedelta(seconds=Tiempo_dialogos)
         cont_letras = tiempo_letras
         cont = 0
@@ -376,8 +382,19 @@ class game:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.menu_animals._on_click(Event(event))
                     if self.menu_animals.element != None and self.menu_animals.element != temp:
-                        distancia_letras_x = 60
-                        cont = 0
+                        for animal in self.animals:
+                            if animal.nombre == self.menu_animals.element:
+                                for material in animal.materiales:
+                                    if self.player.inventario.check_items(material):
+                                        color = WHITE
+                                        temp = animal
+                                    else:
+                                        color = RED
+                                    self.display_text(self.cuadro_animales.image,
+                                                      material.nombre + " " + str(material.cantidad) + "x", 18, color, 70,
+                                                      Distancia)
+                                    Distancia += 20
+                                    self.surface.blit(self.cuadro_animales.image, self.cuadro_animales.rect)
 
                     if self.buttom_salir.rect.collidepoint(pygame.mouse.get_pos()):
                         self.player.vel_x = 0
@@ -388,7 +405,20 @@ class game:
                         buiying = False
 
                     elif self.buttom_buy.rect.collidepoint(pygame.mouse.get_pos()):
-                        pass
+                        for slot in self.animals_slots:
+                            if not slot.occupied:
+                                if self.menu_animals.element == slot.animal:
+                                    if temp != None:
+                                        for material in temp.materiales:
+                                            self.player.inventario.removeItemInv(material, material.cantidad)
+                                        slot.occupied = True
+                                        self.player.vel_x = 0
+                                        self.player.vel_y = 0
+                                        self.back_game()
+                                        self.stop_characters()
+                                        self.state = "Playing"
+                                        buiying = False
+                                        break
 
             pygame.display.flip()
 
@@ -701,9 +731,32 @@ class game:
                 pygame.quit()
                 sys.exit()
 
-            mouse = self.cursor.rect.center
+            self.player.vel_x = 0
+            self.player.vel_y = 0
 
-            self.player.handle_event()
+            mouse = self.cursor.rect.center
+            key = pygame.key.get_pressed()
+            mods = pygame.key.get_mods()
+            if key[pygame.K_a]:
+                if (mods & pygame.KMOD_CTRL):
+                    self.player.run('left')
+                else:
+                    self.player.move('left')
+            if key[pygame.K_d]:
+                if (mods & pygame.KMOD_CTRL):
+                    self.player.run('right')
+                else:
+                    self.player.move('right')
+            if key[pygame.K_s]:
+                if (mods & pygame.KMOD_CTRL):
+                    self.player.run('down')
+                else:
+                    self.player.move('down')
+            if key[pygame.K_w]:
+                if (mods & pygame.KMOD_CTRL):
+                    self.player.run('up')
+                else:
+                    self.player.move('up')
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pygame.mouse.get_pressed()[0]:

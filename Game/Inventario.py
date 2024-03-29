@@ -70,7 +70,7 @@ class Inventario:
             for slot in self.inventory_slots:
                 slot.text_rect.draw(surface)
 
-    def addItemInv(self, item, slot=None, add=False):
+    def addItemInv(self, item, slot=None):
 
         if slot == None:
             for slots in self.inventory_slots:
@@ -91,12 +91,9 @@ class Inventario:
 
 
         if slot != None:
-            if not add:
-                if slot.item != None:
-                    self.movingitemslot.item = slot.item
-                    slot.item = item
-                else:
-                    slot.item = item
+            if slot.item != None:
+                self.movingitemslot.item = slot.item
+                slot.item = item
             else:
                 slot.item = item
 

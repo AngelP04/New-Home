@@ -19,7 +19,7 @@ class Tile(pygame.sprite.Sprite):
         self.map = map
 
     def validate_colision(self, cursor):
-        result = pygame.sprite.collide_rect(self, cursor)
+        result = pygame.sprite.collide_mask(self, cursor)
         if result:
             if self.valid:
                 self.selected = True
@@ -27,6 +27,7 @@ class Tile(pygame.sprite.Sprite):
 
     def update(self):
         self.selected = False
+        self.valid = False
         if self.state == "arado":
             self.image = pygame.image.load('C:/Users/Familia Perez/Desktop/Angel/Programacion Angel/Pycharm/New Home/Images/tiles/TiledeVerano.png')
 

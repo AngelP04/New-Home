@@ -42,11 +42,14 @@ class Ycamara(pygame.sprite.Group):
         self.draw_cursor()
 
     def select_tiles(self):
-        self.map.valid_tiles()
+        self.player.validate_tiles(self.map)
         for tile in self.sprites():
             if isinstance(tile, Tile):
+                tile.validate_colision(self.map.mouse)
                 if tile.selected:
-                    self.screen.blit(self.map.cursor.image, (tile.rect.centerx + self.offset.x - 17, tile.rect.centery + self.offset.y + 17))
+                    self.screen.blit(self.map.cursor.image, (tile.rect.centerx + self.offset.x - 15, tile.rect.centery + self.offset.y - 15))
+                    break
+
 
     def draw_cursor(self):
         self.screen.blit(self.map.mouse.image, self.map.mouse.rect.move(self.offset.x, self.offset.y))

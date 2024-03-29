@@ -4,14 +4,11 @@ import pygame
 from .Config import *
 
 class Recurso(pygame.sprite.Sprite):
-    def __init__(self, left, bottom, aguante, nombre, item=None, item_second=None):
+    def __init__(self, image, pos, aguante, nombre, item=None, item_second=None):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((30, 30))
-        self.image.fill(PINK)
-        self.rect = self.image.get_rect()
+        self.image = image
+        self.rect = self.image.get_rect(center=pos)
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.left = left
-        self.rect.bottom = bottom
         self.pos_x = self.rect.centerx
         self.pos_y = self.rect.centery
         self.aguante = aguante

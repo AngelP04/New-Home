@@ -3,11 +3,14 @@ import pygame
 import uuid
 
 class Item:
-    def __init__(self, nombre, type, id, desc=DESC, materiales=None, obj=None, process=None, progression=0.6):
+    def __init__(self, nombre, type, id, desc=DESC, materiales=None, obj=None, process=None, progression=0.6, surf=None):
         self.progression = progression
         self.nombre = nombre
-        self.image = pygame.Surface((30, 30))
-        self.image.fill(YELLOW)
+        if surf == None:
+            self.image = pygame.Surface((30, 30))
+            self.image.fill(YELLOW)
+        else:
+            self.image = surf
         self.is_moving = False
         self.process = process
         self.id = id
@@ -20,8 +23,8 @@ class Item:
         self.rect = self.image.get_rect()
 
 class Item_acum(Item):
-    def __init__(self, nombre, id, max_acum=200, tool="Hacha", process=None):
-        super(Item_acum, self).__init__(nombre, id=id, type="material", process=process)
+    def __init__(self, nombre, id, max_acum=200, tool="Hacha", process=None, surf=None):
+        super(Item_acum, self).__init__(nombre, id=id, type="material", process=process, surf=surf)
         self.max_acum = max_acum
         self.is_acum = True
         self.tool = tool

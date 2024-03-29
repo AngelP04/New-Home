@@ -2,10 +2,13 @@ import pygame
 import random
 import datetime
 from .Config import *
+from .Items import Craft_Item
+from .Objetos import MADERA
 
 class Animal(pygame.sprite.Sprite):
-    def __init__(self, left, bottom, nombre=None):
+    def __init__(self, left, bottom, nombre=None, materiales=[Craft_Item(MADERA, 5)]):
         pygame.sprite.Sprite.__init__(self)
+        self.materiales = materiales
         self.image = pygame.Surface((30, 30))
         self.image.fill(DARK_GREEN_TWO)
         self.rect = self.image.get_rect()
@@ -87,3 +90,17 @@ class Animal(pygame.sprite.Sprite):
         else:
             self.vel_x *= 0
             self.vel_y *= 0
+
+class Animal_slot(pygame.sprite.Sprite):
+    def __init__(self, pos, animal):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((60, 60))
+        self.image.fill(WHITE)
+        self.pos = pos
+        self.rect = self.image.get_rect(center=pos)
+        self.animal = animal
+        self.occupied = False
+
+    def update(self):
+        if self.occupied:
+            self.image.fill(YELLOW)

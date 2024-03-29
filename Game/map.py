@@ -1,8 +1,11 @@
 import pygame
+import uuid
 from pytmx import load_pygame
 from .Config import *
 from .Tiles import Tile
 from .Estructuras import Estructura, Silo
+from .Recursos import Recurso
+from .Items import Item_acum
 
 class Cursor_mouse(pygame.sprite.Sprite): #Este es un mouse falso que toma en cuenta el offset del mapa
     def __init__(self, player):
@@ -20,8 +23,8 @@ class Cursor_mouse(pygame.sprite.Sprite): #Este es un mouse falso que toma en cu
 
     def update_pos(self):
         if self.can_move and not self.player.colliding:
-            self.pos_x += self.player.vel_x // 2
-            self.pos_y += self.player.vel_y // 2
+            self.pos_x += self.player.vel_x
+            self.pos_y += self.player.vel_y
 
     def update(self):
         self.update_pos()
@@ -43,6 +46,7 @@ class Map(pygame.sprite.Group): #Este mapa es una camara en la cual se dibujan t
         self.offset = pygame.math.Vector2()
         self.estructuras = []
         self.estructuras_disp = []
+        self.minerales = []
         self.in_cinematic = False
         self.tile_select = None
         self.moved = False
@@ -83,6 +87,13 @@ class Map(pygame.sprite.Group): #Este mapa es una camara en la cual se dibujan t
                     surf = pygame.transform.scale(obj.image, (obj.width, obj.height))
                     estructura = Silo(pos=pos, surf=surf, id=obj.id)
                     self.estructuras_disp.append(estructura)
+            elif obj.type in ('Minerales'):
+                if obj.visible:
+                    print(obj.name)
+                    surf = pygame.transform.scale(obj.image, (obj.width, obj.height))
+                    mineral = Recurso(surf, pos, nombre=obj.name, aguante=5)
+                    self.minerales.append(mineral)
+
 
 
     def custom_draw(self):
@@ -92,29 +103,13 @@ class Map(pygame.sprite.Group): #Este mapa es una camara en la cual se dibujan t
                 self.screen.blit(tile.image, offset_rect)
 
     def valid_tiles(self):
-        tile_collide = self.player.valid_tiles(self)
-
         for tile in self.sprites():
             if isinstance(tile, Tile):
                 tile.validate_colision(self.mouse)
                 if tile.selected:
                     break
-                if tile_collide != None: #Se crea el y actualiza el area en el cual es valido seleccionar ciertos tiles dependiendo del tile que esta tocando el jugador
-                    if (tile.id_x <= tile_collide.id_x + 2 and tile.id_x >= tile_collide.id_x - 2) and (
-                            tile.id_y <= tile_collide.id_y + 2 and tile.id_y >= tile_collide.id_y - 2):
-                        if not ((tile.id_x == tile_collide.id_x - 2 and tile.id_y == tile_collide.id_y - 2) or (
-                                tile.id_x == tile_collide.id_x - 2 and tile.id_y == tile_collide.id_y + 2)
-                                or (tile.id_x == tile_collide.id_x + 2 and tile.id_y == tile_collide.id_y - 2) or (
-                                        tile.id_x == tile_collide.id_x + 2 and tile.id_y == tile_collide.id_y + 2)):
-                            tile.valid = True
-                else:
-                    tile.valid = False
 
     def update(self):
-        for sprite in self.sprites():
-            sprite.update()
-
-        self.valid_tiles()
 
         for obj in self.tmx.objects: #Bucle for para saber si se ha construido alguna estructura y agregarla al map
             if obj.type in ('Estructuras'):
@@ -124,54 +119,6 @@ class Map(pygame.sprite.Group): #Este mapa es una camara en la cual se dibujan t
                             obj.visible = True
                             self.estructuras.append(estructura)
                             self.estructuras_disp.remove(estructura)
-
-    def ajust_cinematic(self, cinematica):
-        pos = ""
-        midpoint_x = ((self.player.rect.x + self.offset.x) + (cinematica.target.rect.x + self.offset.x) // 2)
-
-        if cinematica.value and not cinematica.end_dialogue:
-            self.player.can_move = False
-            cinematica.target.can_move = False  # Target es el objeto al que debe dirigirse la camara
-            cinematica.begin = True
-
-        if cinematica.begin:
-            self.temp_x = self.offset.x
-            '''
-            if cinematica.target.pos_x > self.player.pos_x:
-                pos = "derecha"
-                if self.camera_rect.centerx <= midpoint_x and not cinematica.moved:
-                    temp = 0
-                    self.moved = True
-                    self.offset.x = self.camera_rect.left - self.camera_borders["left"]
-                elif self.camera_rect.centerx > midpoint_x and not cinematica.moved:
-                    temp = 4
-                    self.offset.x = self.camera_rect.left - self.camera_borders["left"]
-                    self.offset.x -= temp
-            elif cinematica.target.pos_x < self.player.pos_x:
-                pos = "izquierda"
-                if self.camera_rect.centerx >= midpoint_x + 800 and not self.moved:
-                    temp = 0
-                    self.moved = True
-                    self.offset.x = self.camera_rect.left - self.camera_borders["left"]
-                elif self.camera_rect.centerx < midpoint_x + 800 and not self.moved:
-                    clock = pygame.time.get_ticks() // 10
-                    self.camera_rect.x += clock
-
-            if cinematica.end_dialogue:
-                if pos == "derecha":
-                    temp = 4
-                    self.offset.x = self.camera_rect.left - self.camera_borders["left"]
-                    self.offset.x += temp
-                    if self.offset.x >= self.temp_x + 100:
-                        self.finish_cinematic()
-
-                elif pos == "izquierda":
-                    temp = 4
-                    self.offset.x = self.camera_rect.left - self.camera_borders["left"]
-                    self.offset.x -= temp
-                    if self.camera_rect.x <= self.temp_x - 100:
-                        self.finish_cinematic()
-            '''
 
     def finish_cinematic(self):
         self.in_cinematic = False
